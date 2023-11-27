@@ -25,5 +25,4 @@ print_dec_state(T) :-
     forall(holdsAt(F, T), (print(F), nl)),
     nl.
 
-?- print_narrative(0, 5).
-
+?- print_narrative(0, 20).
