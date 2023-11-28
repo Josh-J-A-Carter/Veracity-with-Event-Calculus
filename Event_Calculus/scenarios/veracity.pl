@@ -24,4 +24,5 @@ happens(generate_judgement(authority, statement, 1.0), 0).
 happens(update_trust(person1, authority, 0.7), 1).
 happens(update_trust(person3, person2, 0.9), 2).
 happens(retract_judgement(authority, statement), 3).
+happens(query, 4).
 

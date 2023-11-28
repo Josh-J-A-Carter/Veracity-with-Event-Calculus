@@ -80,7 +80,9 @@ generate_narrative :-
     findall(Timestamp, happens(_, Timestamp), Timestamps),
     % We want the first reference point to be at 0, for initial conditions to be set
     Initial_Timestamp = 0,
-    append([Initial_Timestamp], Timestamps, Narrative),
+    append([Initial_Timestamp], Timestamps, Event_Timings),
+    % Remove duplicate items, and make sure items are in order
+    sort(Event_Timings, Narrative),
     asserta(narrative(Narrative)),
     % Cache the initial conditions
     forall((holdsAt(F,Initial_Timestamp), \+ holdsIf(F,Initial_Timestamp)), assert(holdsAtCached(F,Initial_Timestamp))).
@@ -105,10 +107,11 @@ tick :-
     % Do not cache fluents with state constraints
     forall((holdsAt(F,T), \+ holdsIf(F,T)), assert(holdsAtCached(F,T))),
     assert(cached(T)),
-    % Remove any previously cached information, and remove events from the narrative that have been simulated
+    % Forget the previous timestamp as it has just been simulated (move the narrative along by one)
+    advance_narrative,
+    % Remove any previously cached information
     retractall(holdsAtCached(_, T_Previous)),
-    retractall(releasedAtCached(_, T_Previous)),
-    advance_narrative.
+    retractall(releasedAtCached(_, T_Previous)).
 
 initialiseDEC :-
     retractall(holdsAtCached(_,_)),
