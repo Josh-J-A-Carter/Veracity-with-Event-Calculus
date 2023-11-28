@@ -33,7 +33,6 @@ holdsAtNoCache(F, 0) :-
     initially(F).
 
 holdsAtNoCache(F, T_Current) :-
-    % T_Current > 0,
     adjacent_timestamps(T_Previous, T_Current),
     holdsAtCached(F, T_Previous),               % Did F hold in the previous time slice?
     \+ (                                        % Was the fluent terminated or released since then?

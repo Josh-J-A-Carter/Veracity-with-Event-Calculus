@@ -1,7 +1,7 @@
 :- [cached_dec].
 :- initialiseDEC.
 :- retractall(happens(_,_)).
-
+:- use_module(library(date)).
 
 %%% Initial application
 
@@ -39,9 +39,9 @@ terminates(certify(Certifier, Entity, _Start_Date), application(Entity, Certifie
 % Entity is certified by Certifier at time T if it has a current certification, effective within 12 months of T,
 % and Certifier has not suspended or revoked Entity's certification.
 holdsIf(certificate(Entity, Certifier)=valid, T) :-
-    happens(certify(Certifier, Entity, T_previous), _Date_of_Decision),
-    T - T_previous =< 12,
-    T >= T_previous,
+    happens(certify(Certifier, Entity, T_Previous), _Date_of_Decision),
+    T > T_Previous,
+    T - T_Previous =< 12 * 30 * 24 * 60 * 60, % This makes some assumptions about how we're counting months! The documents were vague
     \+ (
         holdsAt(penalty(Entity, Certifier)=suspension, T)
         ;
@@ -50,9 +50,9 @@ holdsIf(certificate(Entity, Certifier)=valid, T) :-
 
 % Entity's certificate from Certifier has expired if we cannot find a recent certify event
 holdsIf(certificate(Entity, Certifier)=expired, T) :-
-    happens(certify(Certifier, Entity, T_previous), _Date_of_Decision),
-    T >= T_previous,
-    \+ T - T_previous =< 12,
+    happens(certify(Certifier, Entity, T_Previous), _Date_of_Decision),
+    T > T_Previous,
+    T - T_Previous > 12 * 30 * 24 * 60 * 60, % This makes some assumptions about how we're counting months! The documents were vague
     \+ (
         holdsAt(penalty(Entity, Certifier)=suspension, T)
         ;
@@ -96,3 +96,5 @@ happens(accept_documentation(certifier, producer), 1588453200).         % 03/05/
 happens(certify(certifier, producer, 1592449200), 1592449200).          % 18/06/2020, 15.00
 happens(suspend(certifier, producer), 1604979000).                      % 10/11/2020, 16.30
 happens(excuse(certifier, producer), 1605132000).                       % 12/11/2020, 11.00
+happens(query, 1618012800).                                             % 10/04/2021, 00.00
+happens(query, 1633651200).                                             % 08/10/2021, 00.00
