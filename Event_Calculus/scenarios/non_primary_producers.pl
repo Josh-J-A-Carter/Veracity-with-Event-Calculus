@@ -32,14 +32,14 @@ initiates(accept_documentation(Certifier, Entity), application(Entity, Certifier
 %%% Certification
 
 % Accepting the application may entail certification commencing at some later date
-causes(accept_application(Certifier, Entity, Start_Date, _Expiry_Date), _Acceptance_Date, certify(Certifier, Entity), Start_Date).
-    % holdsAt(application(Entity, Certifier)=pending_audit, Acceptance_Date).
+causes(accept_application(Certifier, Entity, Start_Date, _Expiry_Date), Acceptance_Date, certify(Certifier, Entity), Start_Date) :-
+    holdsAt(application(Entity, Certifier)=pending_audit, Acceptance_Date).
 terminates(accept_application(Certifier, Entity, _Start_Date, _Expiry_Date), application(Entity, Certifier)=pending_audit, _T).
 initiates(certify(Certifier, Entity), certificate(Entity, Certifier)=valid, _T).
 
 % Certification causes expiry to occur after some time delay
-causes(accept_application(Certifier, Entity, _Start_Date, Expiry_Date), _Acceptance_Date, expire(Certifier, Entity), Expiry_Date).
-    % holdsAt(application(Entity, Certifier)=pending_audit, Acceptance_Date).
+causes(accept_application(Certifier, Entity, _Start_Date, Expiry_Date), Acceptance_Date, expire(Certifier, Entity), Expiry_Date) :-
+    holdsAt(application(Entity, Certifier)=pending_audit, Acceptance_Date).
 terminates(expire(Certifier, Entity), certificate(Entity, Certifier)=_Status, _T).
 
 % Renewal of certificate, which starts a new application
