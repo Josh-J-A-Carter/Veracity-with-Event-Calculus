@@ -1,11 +1,12 @@
 :- use_module(library(ansi_term)).
+% [scenarios/non_primary_producers, queries].
 
 print_narrative :-
     ansi_format([fg(cyan)], "Printing entire narrative:~n~n", []),
     initialiseDEC,
-    narrative(Narrative), length(Narrative, Length),
-    Limit is Length - 1,    % The narrative has an additional zero; we don't want this to be counted
-    forall(between(1, Limit, _Iteration), (tick, print_dec_state, nl)).
+    repeat,
+    tick, print_dec_state, nl,
+    narrative(Narrative), length(Narrative, Length), Length =< 1.
 
 print_dec_state :-
     adjacent_timestamps(Timestamp, _Future),

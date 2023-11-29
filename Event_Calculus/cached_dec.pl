@@ -4,6 +4,7 @@
 :- multifile releases/3.
 :- multifile happens/2.
 :- multifile holdsIf/2.
+:- multifile causes/4.
 :- dynamic holdsAtCached/2.
 :- dynamic releasedAtCached/2.
 :- dynamic cached/2.
@@ -85,7 +86,35 @@ generate_narrative :-
     sort(Event_Timings, Narrative),
     asserta(narrative(Narrative)),
     % Cache the initial conditions
-    forall((holdsAt(F,Initial_Timestamp), \+ holdsIf(F,Initial_Timestamp)), assert(holdsAtCached(F,Initial_Timestamp))).
+    cache_holdsAt(Initial_Timestamp),
+    % Cache any newly caused events
+    cache_causes(Initial_Timestamp).
+
+cache_causes(T_Current) :-
+    findall(
+        T_Future,
+        (
+            % Are there any new events which cause other events to occur in the future?
+            happens(E1, T_Current), causes(E1, T_Current, E2, T_Future), T_Future >= T_Current,
+            % If yes, we add them as their own events
+            assert(happens(E2, T_Future))
+        ),
+        New_Events
+    ),
+    % If there are new events, add them to the narrative
+    New_Events \= []
+    -> (
+        narrative(Old_Narrative),
+        append(New_Events, Old_Narrative, Unsorted_Narrative),
+        sort(Unsorted_Narrative, New_Narrative),
+        retractall(narrative(_)),
+        asserta(narrative(New_Narrative))
+    )
+    % Otherwise, there are no new events so do nothing
+    ; true.
+
+cache_holdsAt(T) :-
+    forall((holdsAt(F,T), \+ holdsIf(F,T)), assert(holdsAtCached(F,T))).
 
 % Get rid of the most recent timestamp in the narrative; it will no longer be needed
 advance_narrative :-
@@ -104,8 +133,10 @@ adjacent_timestamps(Previous_Timestamp, _Future) :-
 % Tick to the next event
 tick :-
     adjacent_timestamps(T_Previous, T),
+    % Cache any newly caused events
+    cache_holdsAt(T),
+    cache_causes(T),
     % Do not cache fluents with state constraints
-    forall((holdsAt(F,T), \+ holdsIf(F,T)), assert(holdsAtCached(F,T))),
     assert(cached(T)),
     % Forget the previous timestamp as it has just been simulated (move the narrative along by one)
     advance_narrative,
