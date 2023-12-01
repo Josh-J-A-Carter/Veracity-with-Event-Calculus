@@ -9,13 +9,13 @@ print_narrative :-
     narrative(Narrative), length(Narrative, Length), Length =< 1.
 
 print_dec_state :-
-    adjacent_timestamps(Timestamp, _Future),
+    adjacent_timestamps(Timestamp, Future),
     format_time(atom(Date), '%d/%m/%Y, %H:%M', Timestamp),
     ansi_format([fg(green)], "Events that occurred at time ~w~n", [Date]),
     forall(happens(Event, Timestamp), (print(Event), nl)),
     nl,
-    ansi_format([fg(green)], "Fluents that hold at time ~w~n", [Date]),
-    forall(holdsAt(Fluent, Timestamp), (print(Fluent), nl)),
+    ansi_format([fg(green)], "Fluents that hold just after ~w~n", [Date]),
+    forall(holdsAt(Fluent, Future), (print(Fluent), nl)),
     nl.
 
 ?- print_narrative.

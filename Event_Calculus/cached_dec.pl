@@ -134,7 +134,7 @@ adjacent_timestamps(Previous_Timestamp, _Future) :-
 % Tick to the next event
 tick :-
     adjacent_timestamps(T_Previous, T),
-    % Cache any newly caused events
+    % Cache any newly caused events, and the fluents that currently hold
     cache_holdsAt(T),
     cache_causes(T),
     assert(cached(T)),
