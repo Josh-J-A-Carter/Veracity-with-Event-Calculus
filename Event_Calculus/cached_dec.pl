@@ -74,22 +74,7 @@ releasedAt(F, T_Current) :-
 % Support for multi-valued fluent, taken from Marek Sergot's lecture notes
 terminates(E, F=_, T) :- initiates(E, F=_, T).
 
-
-% Store when each event occurs in order, in a dynamic narrative/1 clause
-generate_narrative :- 
-    retractall(narrative(_)),
-    findall(Timestamp, happens(_, Timestamp), Timestamps),
-    % We want the first reference point to be at 0, for initial conditions to be set
-    Initial_Timestamp = 0,
-    append([Initial_Timestamp], Timestamps, Event_Timings),
-    % Remove duplicate items, and make sure items are in order
-    sort(Event_Timings, Narrative),
-    asserta(narrative(Narrative)),
-    % Cache the initial conditions
-    cache_holdsAt(Initial_Timestamp),
-    % Cache any newly caused events
-    cache_causes(Initial_Timestamp).
-
+% Cache events that are caused by other events
 cache_causes(T_Current) :-
     findall(
         T_Future,
@@ -113,8 +98,24 @@ cache_causes(T_Current) :-
     % Otherwise, there are no new events so do nothing
     ; true.
 
+% Fluents that currently hold (unless they have state constraints; we don't want to cache those)
 cache_holdsAt(T) :-
     forall((holdsAt(F,T), \+ holdsIf(F,T)), assert(holdsAtCached(F,T))).
+
+% Store when each event occurs in order, in a dynamic narrative/1 clause
+generate_narrative :- 
+    retractall(narrative(_)),
+    findall(Timestamp, happens(_, Timestamp), Timestamps),
+    % We want the first reference point to be at 0, for initial conditions to be set
+    Initial_Timestamp = 0,
+    append([Initial_Timestamp], Timestamps, Event_Timings),
+    % Remove duplicate items, and make sure items are in order
+    sort(Event_Timings, Narrative),
+    asserta(narrative(Narrative)),
+    % Cache the initial conditions
+    cache_holdsAt(Initial_Timestamp),
+    % Cache any newly caused events
+    cache_causes(Initial_Timestamp).
 
 % Get rid of the most recent timestamp in the narrative; it will no longer be needed
 advance_narrative :-
@@ -136,7 +137,6 @@ tick :-
     % Cache any newly caused events
     cache_holdsAt(T),
     cache_causes(T),
-    % Do not cache fluents with state constraints
     assert(cached(T)),
     % Forget the previous timestamp as it has just been simulated (move the narrative along by one)
     advance_narrative,
