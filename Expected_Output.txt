@@ -1,0 +1,104 @@
+Expected output in SWI Prolog for:
+?- [veracity, queries].
+
+Printing entire narrative:
+
+Events that occurred at time 01/01/1970, 13:16
+handle(winery,bottle_1)
+witness(winery,claim(bottle_1,"organic"),1.0)
+
+Fluents that hold just after 01/01/1970, 13:16
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=1.0
+
+
+Events that occurred at time 01/01/1970, 13:18
+handle(organic_transportation,bottle_1)
+witness(organic_transportation,claim(bottle_1,"organic"),1.0)
+
+Fluents that hold just after 01/01/1970, 13:18
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=0.97
+
+
+Events that occurred at time 01/01/1970, 13:20
+handle(retailer,bottle_1)
+witness(retailer,claim(bottle_1,"organic"),1.0)
+
+Fluents that hold just after 01/01/1970, 13:20
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=0.9215
+
+
+Events that occurred at time 01/01/1970, 13:25
+query
+
+Fluents that hold just after 01/01/1970, 13:25
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=0.9215
+
+
+Events that occurred at time 01/01/1970, 13:33
+handle(winery,bottle_2)
+witness(winery,claim(bottle_2,"organic"),1.0)
+
+Fluents that hold just after 01/01/1970, 13:33
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=0.9215
+belief(customer,claim(bottle_2,"organic"))=1.0
+
+
+Events that occurred at time 01/01/1970, 13:35
+handle(random_transportation,bottle_2)
+witness(random_transportation,claim(bottle_2,"organic"),1.0)
+
+Fluents that hold just after 01/01/1970, 13:35
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=0.9215
+belief(customer,claim(bottle_2,"organic"))=0.4
+
+
+Events that occurred at time 01/01/1970, 13:36
+handle(retailer,bottle_2)
+witness(retailer,claim(bottle_2,"organic"),1.0)
+
+Fluents that hold just after 01/01/1970, 13:36
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=0.9215
+belief(customer,claim(bottle_2,"organic"))=0.38
+
+
+Events that occurred at time 01/01/1970, 13:41
+query
+
+Fluents that hold just after 01/01/1970, 13:41
+trust(customer,winery)=1.0
+trust(customer,organic_transportation)=0.97
+trust(customer,random_transportation)=0.4
+trust(customer,retailer)=0.95
+belief(customer,claim(bottle_1,"organic"))=0.9215
+belief(customer,claim(bottle_2,"organic"))=0.38
+
+
+true.
