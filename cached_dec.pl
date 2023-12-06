@@ -144,10 +144,19 @@ tick :-
     retractall(holdsAtCached(_, T_Previous)),
     retractall(releasedAtCached(_, T_Previous)).
 
+% Pessimistic by default
 initialiseDEC :-
+    initialiseDEC('pessimistic').
+
+initialiseDEC(Mode) :-
     retractall(holdsAtCached(_,_)),
     retractall(releasedAtCached(_,_)),
     retractall(cached(_)),
+    % Do we want optimistic or pessimistic behaviour?
+    retractall(optimistic),
+    ((Mode = 'optimistic') -> assert(optimistic)
+        ; true
+    ),
     generate_narrative.
 
 
