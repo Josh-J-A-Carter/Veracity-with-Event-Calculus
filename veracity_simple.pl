@@ -7,6 +7,7 @@
 initially(trust(e1, e2)=0.5).
 initially(trust(e3, e2)=0.75).
 initially(trust(e3, e1)=0.2).
+initially(belief(e2, e2, statement(wine, "organic"), 1)=0.4).
 
 initiates(give_trust(Trustor, Trustee, Trust), trust(Trustor, Trustee)=Trust, _T).
 initiates(event, belief(e2, e2, statement(wine, "organic"), T)=1.0, T).

@@ -114,10 +114,11 @@ cache_holdsAt(T) :-
 
 % Cache the violates/3 predicates which occur at time T
 update_violations(Updated_Violations, T) :-
+    adjacent_timestamps(T_Previous, T),
     findall(Statement,
         % Find every event at T which causes any claim Claim to be invalidated
-        (happens(Event, T),
-        violates(Event, Expectation, T),
+        (happens(Event, T_Previous),
+        violates(Event, Expectation, T_Previous),
         % Ensure that the claim binds properly; we don't want unbound variables
         Expectation = expectation(_Entity, Statement), require_validation(Statement, _)),
         Unsorted_Expectations),
@@ -129,7 +130,7 @@ update_violations(Updated_Violations, T) :-
             require_validation(Statement, Existing_Requirements),
             retractall(require_validation(Statement, _)),
             % Add the current timestamp as a new requirement, sort in case there are somehow duplicates, and store
-            append(Existing_Requirements, [T], Unsorted_Requirements), sort(Unsorted_Requirements, New_Requirements),
+            append(Existing_Requirements, [T_Previous], Unsorted_Requirements), sort(Unsorted_Requirements, New_Requirements),
             assert(require_validation(Expectation, New_Requirements))
         )),
     % Create a list of entities that have been affected, for each of the expectation types
@@ -137,7 +138,7 @@ update_violations(Updated_Violations, T) :-
         % Get all the entities whose expectation has been invalidated, stored as a list
         (member(Statement, Invalidated_Expectations),
         findall(Entity,
-            (holdsAtCached(expectation(Entity, Statement)=_Confidence, T)),
+            (holdsAtCached(expectation(Entity, Statement)=_Confidence, T_Previous)),
             Entities
         )),
         Updated_Violations).
@@ -224,14 +225,15 @@ mode(Sign) :-
 update_beliefs(Updated_Beliefs, T) :-
     % Beliefs can be updated from changing trust, changing beliefs, or initial belief conditions
     List_Of_Lists = [List_1, List_2, List_3],
+    adjacent_timestamps(T_Previous, T),
     % Beliefs that have been terminated, released, or initiated directly
     findall(
         claim(Claimant, Claim, Creation_Time, Confidence),
-        (happens(E, T),
+        (happens(E, T_Previous),
             (
-                initiates(E, belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T)
-                ; terminates(E, belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T)
-                ; releases(E, belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T)
+                initiates(E, belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T_Previous)
+                ; terminates(E, belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T_Previous)
+                ; releases(E, belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T_Previous)
             ),
             % We need Confidence to be instantiated
             \+ var(Confidence)),
@@ -240,29 +242,30 @@ update_beliefs(Updated_Beliefs, T) :-
     % If Trustor's trust in Trustee changes, we need to recompute all of the beliefs that Trustee believes
     findall(
         claim(Claimant, Claim, Creation_Time, Confidence),
-        (happens(E, T),
+        (happens(E, T_Previous),
             (
-                initiates(E, trust(Trustor, Trustee)=_, T)
-                ; terminates(E, trust(Trustor, Trustee)=_, T)
-                ; releases(E, trust(Trustor, Trustee)=_, T)
+                initiates(E, trust(Trustor, Trustee)=_, T_Previous)
+                ; terminates(E, trust(Trustor, Trustee)=_, T_Previous)
+                ; releases(E, trust(Trustor, Trustee)=_, T_Previous)
             ),
-        holdsAtCached(belief(Trustee, Claimant, Claim, Creation_Time)=_Confidence, T),
+        holdsAtCached(belief(Trustee, Claimant, Claim, Creation_Time)=_Confidence, T_Previous),
         % We need the confidence level of the source of this claim
-        holdsAtCached(belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T),
+        holdsAtCached(belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T_Previous),
         % We need Confidence to be instantiated
         \+ var(Confidence)),
         List_2
     ),
     % initially/1 predicates defining belief/4 fluents
-    ((T = 0)
-        -> findall(
+    ((T_Previous = 0)
+        -> (List_1 = [], List_2 = [],
+            findall(
             claim(Claimant, Claim, Creation_Time, Confidence),
             (initially(belief(Claimant, Claimant, Claim, Creation_Time)=Confidence),
             % We need Confidence to be instantiated
             \+ var(Confidence)),
-            List_3)
-        ; List_3 = []
-    ),
+            List_3))
+        % T \= 0,
+        ; List_3 = []),
     % Append into one list, sort into ascending order (we want to evaluate the least recent claims first) and remove any duplicates
     append(List_Of_Lists, Merged_List),
     sort(3, @<, Merged_List, Beliefs_To_Update),
@@ -369,11 +372,7 @@ generate_narrative :-
     % Cache the initial conditions
     cache_holdsAt(Initial_Timestamp),
     % Cache any newly caused events
-    cache_causes(Initial_Timestamp),
-    % Propagate belief changes, if applicable
-    update_beliefs(Updated_Beliefs, Initial_Timestamp),
-    update_violations(Updated_Violations, Initial_Timestamp),
-    update_expectations(Updated_Violations, Updated_Beliefs, Initial_Timestamp).
+    cache_causes(Initial_Timestamp).
 
 % Get rid of the most recent timestamp in the narrative; it will no longer be needed
 advance_narrative :-
