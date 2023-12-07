@@ -12,6 +12,7 @@
 :- dynamic happens/2.
 :- dynamic narrative/1.
 :- dynamic optimistic/0.                % Should not be altered during computation of the narrative!
+:- dynamic require_validation/2.
 :- discontiguous initially/1.
 :- discontiguous initiates/3.
 :- discontiguous terminates/3.
@@ -107,6 +108,29 @@ cache_holdsAt(T) :-
     forall((holdsAt(F,T), \+ holdsIf(F,T)), assert(holdsAtCached(F,T))).
 
 
+cache_invalidates(T) :-
+    findall(Statement,
+        % Find every event at T which causes any claim Claim to be invalidated
+        (happens(E, T),
+        invalidates(E, Claim, T),
+        % Ensure that the claim binds properly; we don't want unbound variables
+        Claim = claim(_Claimant, Statement, _Claim_Creation_Time), require_validation(Statement, _)),
+        Unsorted_Claims),
+    % Remove duplicates; we only want to add more requirements to each TYPE of statement
+    sort(Unsorted_Claims, Invalidated_Claims),
+    write(Invalidated_Claims),
+    forall(member(Claim, Invalidated_Claims),
+        (
+            % Get the current claim's existing requirements (if they exist), and remove them from storage
+            (require_validation(Claim, Existing_Requirements)
+                -> retractall(require_validation(Claim, _))
+                ; Existing_Requirements = []),
+            % Add the current timestamp as a new requirement, sort in case there are somehow duplicates, and store
+            append(Existing_Requirements, [T], Unsorted_Requirements), sort(Unsorted_Requirements, New_Requirements),
+            assert(require_validation(Claim, New_Requirements))
+        )),
+    forall(require_validation(A1, A2), write((A1, A2))).
+
 
 %%% Trust & belief handling
 
@@ -124,7 +148,7 @@ update_beliefs(T) :-
     List_Of_Lists = [List_1, List_2, List_3],
     % Beliefs that have been terminated, released, or initiated directly
     findall(
-        (Claimant, Claim, Creation_Time, Confidence),
+        claim(Claimant, Claim, Creation_Time, Confidence),
         (happens(E, T),
             (
                 initiates(E, belief(Claimant, Claimant, Claim, Creation_Time)=Confidence, T)
@@ -137,7 +161,7 @@ update_beliefs(T) :-
     ),
     % If Trustor's trust in Trustee changes, we need to recompute all of the beliefs that Trustee believes
     findall(
-        (Claimant, Claim, Creation_Time, Confidence),
+        claim(Claimant, Claim, Creation_Time, Confidence),
         (happens(E, T),
             (
                 initiates(E, trust(Trustor, Trustee), T)
@@ -154,22 +178,22 @@ update_beliefs(T) :-
     % initially/1 predicates defining belief/4 fluents
     ((T = 0)
         -> findall(
-            (Claimant, Claim, Creation_Time, Confidence),
+            claim(Claimant, Claim, Creation_Time, Confidence),
             (initially(belief(Claimant, Claimant, Claim, Creation_Time)=Confidence),
             % We need Confidence to be instantiated
             \+ var(Confidence)),
             List_3)
         ; List_3 = []
     ),
-    % Append into one list and remove any duplicates
+    % Append into one list, sort into ascending order (we want to evaluate the least recent claims first) and remove any duplicates
     append(List_Of_Lists, Merged_List),
-    sort(Merged_List, Beliefs_To_Update),
+    sort(3, @<, Merged_List, Beliefs_To_Update),
     length(Beliefs_To_Update, Length),
     (Length = 0
         -> true
         % For each updated claim, propagate the changes through the network
         ; (forall(member(Args, Beliefs_To_Update),
-            (Args = (Claimant, Claim, Creation_Time, Confidence),
+            (Args = claim(Claimant, Claim, Creation_Time, Confidence),
                 update_claim(Claimant, Claim, Creation_Time, Confidence, T))))).
 
 % Claimant              - The entity who Claimants the claim to exist
@@ -179,9 +203,14 @@ update_beliefs(T) :-
 %                           There may be multiple instances of the same type of claim, at different points in time
 % T                     - What timestamp are we currently at in the narrative?
 update_claim(Claimant, Claim, Claim_Creation_Time, Confidence, T) :-
+    % Make sure each unique claim is known to the system
+    % This allows claims to be recognised, even if no entities (currently) believe them
+    (\+ require_validation(Claim, _Requirements)
+        -> assert(require_validation(Claim, []))
+        ; true),
     % Remove all of the cached 'belief/4' fluents so we can recompute them using Dijkstra's algorith
     % This is inefficient but simple and it ensures correctness
-    retractall(holdsAtCached(belief(_Believer, Claimant, Claim, Claim_Creation_Time), T)),
+    retractall(holdsAtCached(belief(_Believer, Claimant, Claim, Claim_Creation_Time)=_Confidence, T)),
     (Confidence > 0, Confidence =< 1)
         ->  (% Dijkstra's algorithm - note that we need confidence as a logarithm!
             list_to_heap([], Heap),
@@ -257,6 +286,7 @@ generate_narrative :-
     asserta(narrative(Narrative)),
     % Cache the initial conditions
     cache_holdsAt(Initial_Timestamp),
+    cache_invalidates(Initial_Timestamp),
     % Cache any newly caused events
     cache_causes(Initial_Timestamp),
     % Propagate belief changes, if applicable
@@ -280,6 +310,7 @@ tick :-
     adjacent_timestamps(T_Previous, T),
     % Cache the fluents that currently hold
     cache_holdsAt(T),
+    cache_invalidates(T),
     % Propagate belief changes, if applicable
     update_beliefs(T),
     % Cache any newly caused events
@@ -296,6 +327,7 @@ tick :-
 initialiseDEC(Mode) :-
     retractall(holdsAtCached(_,_)),
     retractall(releasedAtCached(_,_)),
+    retractall(require_validation(_,_)),
     retractall(cached(_)),
     retractall(optimistic),
     ((Mode = 'optimistic') 
