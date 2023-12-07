@@ -1,4 +1,5 @@
 :- use_module(library(heaps)).
+:- use_module(library(lists)).
 :- multifile initially/1.
 :- multifile initiates/3.
 :- multifile terminates/3.
@@ -108,28 +109,105 @@ cache_holdsAt(T) :-
     forall((holdsAt(F,T), \+ holdsIf(F,T)), assert(holdsAtCached(F,T))).
 
 
-cache_invalidates(T) :-
+
+%%% Expectations
+
+% Cache the violates/3 predicates which occur at time T
+update_violations(Updated_Violations, T) :-
     findall(Statement,
         % Find every event at T which causes any claim Claim to be invalidated
-        (happens(E, T),
-        invalidates(E, Claim, T),
+        (happens(Event, T),
+        violates(Event, Expectation, T),
         % Ensure that the claim binds properly; we don't want unbound variables
-        Claim = claim(_Claimant, Statement, _Claim_Creation_Time), require_validation(Statement, _)),
-        Unsorted_Claims),
-    % Remove duplicates; we only want to add more requirements to each TYPE of statement
-    sort(Unsorted_Claims, Invalidated_Claims),
-    write(Invalidated_Claims),
-    forall(member(Claim, Invalidated_Claims),
+        Expectation = expectation(_Entity, Statement), require_validation(Statement, _)),
+        Unsorted_Expectations),
+    % Remove duplicates; we only want to add more requirements to each TYPE of expectation
+    sort(Unsorted_Expectations, Invalidated_Expectations),
+    forall(member(Statement, Invalidated_Expectations),
         (
-            % Get the current claim's existing requirements (if they exist), and remove them from storage
-            (require_validation(Claim, Existing_Requirements)
-                -> retractall(require_validation(Claim, _))
-                ; Existing_Requirements = []),
+            % Get the current claim's existing requirements, and remove them from storage
+            require_validation(Statement, Existing_Requirements),
+            retractall(require_validation(Statement, _)),
             % Add the current timestamp as a new requirement, sort in case there are somehow duplicates, and store
             append(Existing_Requirements, [T], Unsorted_Requirements), sort(Unsorted_Requirements, New_Requirements),
-            assert(require_validation(Claim, New_Requirements))
+            assert(require_validation(Expectation, New_Requirements))
         )),
-    forall(require_validation(A1, A2), write((A1, A2))).
+    % Create a list of entities that have been affected, for each of the expectation types
+    findall((Statement, Entities),
+        % Get all the entities whose expectation has been invalidated, stored as a list
+        (member(Statement, Invalidated_Expectations),
+        findall(Entity,
+            (holdsAtCached(expectation(Entity, Statement)=_Confidence, T)),
+            Entities
+        )),
+        Updated_Violations).
+
+update_expectations(Updated_Violations, Updated_Beliefs, T) :-
+    % Go through each statement which may have been updated
+    forall(member((Statement, Affected_Entities), Updated_Violations),
+        % Go through each entity which may have been affected, and update its expectation
+        (forall(member(Entity, Affected_Entities),
+            calculate_expectation(Entity, Statement, T)
+        ))
+    ),
+    % Go through each statement which may have been updated
+    forall(member((Statement, Affected_Entities), Updated_Beliefs),
+        % Go through each entity which may have been affected, and update its expectation
+        (forall(member(Entity, Affected_Entities),
+            calculate_expectation(Entity, Statement, T)
+        ))
+    ).
+
+calculate_expectation(Entity, Statement, T) :-
+    retractall(holdsAtCached(expectation(Entity, Statement)=_Old_Confidence, T)),
+    % Get the requirements, and prepend a -1 timestamp to make sure initial belief is checked
+    require_validation(Statement, Timestamps),
+    append([-1], Timestamps, Requirements),
+    total_confidence(Entity, Statement, Requirements, 1.0, Total_Confidence, T),
+    (Total_Confidence \= 0
+        -> assert(holdsAtCached(expectation(Entity, Statement)=Total_Confidence, T))
+        ; true).
+
+% Base case; there are no more requirements after this one
+% We only need to check LOWER time bound, since the future is undefined
+total_confidence(Entity, Statement, [Req | []], Accumulated_Confidence, Total_Confidence, T) :-
+    % Check for a belief which applies after Req
+    findall(Confidence,
+        (
+            holdsAtCached(belief(Entity, _Claimant, Statement, Claim_Creation_Time)=Confidence, T),
+            Claim_Creation_Time > Req
+        ),
+        Relevant_Scores),
+    % If the list is empty, we're missing a belief for this window, so total confidence is zero
+    (Relevant_Scores = []
+        -> Total_Confidence = 0
+        % There is indeed at least one confidence value; take the optimal one
+        ; ((optimistic
+                -> max_list(Relevant_Scores, Optimal_Value)
+                ; min_list(Relevant_Scores, Optimal_Value)),
+           Total_Confidence is Accumulated_Confidence * Optimal_Value)).
+
+% There are still requirements to satisfy
+total_confidence(Entity, Statement, Requirements, Accumulated_Confidence, Total_Confidence, T) :-
+    Requirements = [Req_1, Req_2 | Remaining_Requirements],
+    % Check for a belief which applies between Req_1 and Req_2
+    findall(Confidence,
+        (
+            holdsAtCached(belief(Entity, _Claimant, Statement, Claim_Creation_Time)=Confidence, T),
+            Claim_Creation_Time > Req_1, Claim_Creation_Time =< Req_2
+        ),
+        Relevant_Scores),
+    % If there is no such confidence value, stop recursing and set the total confidence to zero
+    % This is because we are missing a belief during this window of time
+    (Relevant_Scores = []
+        -> Total_Confidence = 0
+        % There is indeed at least one confidence value; take the optimal one
+        ; ((optimistic
+                -> max_list(Relevant_Scores, Optimal_Value)
+                ; min_list(Relevant_Scores, Optimal_Value)),
+           New_Acc is Accumulated_Confidence * Optimal_Value,
+           total_confidence(Entity, Statement, [Req_2 | Remaining_Requirements], New_Acc, Total_Confidence, T))).
+
 
 
 %%% Trust & belief handling
@@ -143,7 +221,7 @@ mode(Sign) :-
         % Optimistic; take max confidence values
         ; Sign is -1.
 
-update_beliefs(T) :-
+update_beliefs(Updated_Beliefs, T) :-
     % Beliefs can be updated from changing trust, changing beliefs, or initial belief conditions
     List_Of_Lists = [List_1, List_2, List_3],
     % Beliefs that have been terminated, released, or initiated directly
@@ -164,9 +242,9 @@ update_beliefs(T) :-
         claim(Claimant, Claim, Creation_Time, Confidence),
         (happens(E, T),
             (
-                initiates(E, trust(Trustor, Trustee), T)
-                ; terminates(E, trust(Trustor, Trustee), T)
-                ; releases(E, trust(Trustor, Trustee), T)
+                initiates(E, trust(Trustor, Trustee)=_, T)
+                ; terminates(E, trust(Trustor, Trustee)=_, T)
+                ; releases(E, trust(Trustor, Trustee)=_, T)
             ),
         holdsAtCached(belief(Trustee, Claimant, Claim, Creation_Time)=_Confidence, T),
         % We need the confidence level of the source of this claim
@@ -188,13 +266,14 @@ update_beliefs(T) :-
     % Append into one list, sort into ascending order (we want to evaluate the least recent claims first) and remove any duplicates
     append(List_Of_Lists, Merged_List),
     sort(3, @<, Merged_List, Beliefs_To_Update),
-    length(Beliefs_To_Update, Length),
-    (Length = 0
-        -> true
+    (Beliefs_To_Update = []
+        -> Updated_Beliefs = []
         % For each updated claim, propagate the changes through the network
-        ; (forall(member(Args, Beliefs_To_Update),
-            (Args = claim(Claimant, Claim, Creation_Time, Confidence),
-                update_claim(Claimant, Claim, Creation_Time, Confidence, T))))).
+        ; findall((Claim, Affected_Entities),
+            (member(Args, Beliefs_To_Update),
+            Args = claim(Claimant, Claim, Creation_Time, Confidence),
+            update_claim(Claimant, Claim, Creation_Time, Confidence, Affected_Entities, T)),
+            Updated_Beliefs)).
 
 % Claimant              - The entity who Claimants the claim to exist
 % Claim                 - The claim being asserted
@@ -202,37 +281,40 @@ update_beliefs(T) :-
 % Claim_Creation_Time   - When was the claim verified / created?
 %                           There may be multiple instances of the same type of claim, at different points in time
 % T                     - What timestamp are we currently at in the narrative?
-update_claim(Claimant, Claim, Claim_Creation_Time, Confidence, T) :-
+update_claim(Claimant, Claim, Claim_Creation_Time, Confidence, Affected_Entities, T) :-
     % Make sure each unique claim is known to the system
-    % This allows claims to be recognised, even if no entities (currently) believe them
+    % This allows claims to be recognised / unified with, even if no entities (currently) believe them
     (\+ require_validation(Claim, _Requirements)
         -> assert(require_validation(Claim, []))
         ; true),
-    % Remove all of the cached 'belief/4' fluents so we can recompute them using Dijkstra's algorith
+    % Remove all of the cached 'belief/4' fluents so we can recompute them using Dijkstra's algorithm
     % This is inefficient but simple and it ensures correctness
-    retractall(holdsAtCached(belief(_Believer, Claimant, Claim, Claim_Creation_Time)=_Confidence, T)),
-    (Confidence > 0, Confidence =< 1)
+    findall(Entity,
+        (retract(holdsAtCached(belief(Entity, Claimant, Claim, Claim_Creation_Time)=_Confidence, T))),
+        Removed_Entities),
+    ((Confidence > 0, Confidence =< 1)
         ->  (% Dijkstra's algorithm - note that we need confidence as a logarithm!
             list_to_heap([], Heap),
             mode(Sign), Log_Confidence is Sign * log(Confidence),
-            propagate_claim(node(Claimant, Log_Confidence), claim(Claimant, Claim, Claim_Creation_Time), T, Heap))
+            propagate_claim(node(Claimant, Log_Confidence), claim(Claimant, Claim, Claim_Creation_Time), Added_Entities, T, Heap),
+            append(Removed_Entities, Added_Entities, Unsorted_Affected_Entities),
+            sort(Unsorted_Affected_Entities, Affected_Entities))
         % Otherwise, Confidence is zero (or an inappropriate value), so the claim is retracted entirely
-        ;   true.
+        ;   Affected_Entities = Removed_Entities).
 
-propagate_claim(Current_Node, Claim_Info, T, Heap_0) :- 
+propagate_claim(Current_Node, Claim_Info, [Entity | Added_Entities], T, Heap_0) :-
     % Unwrap the node/2 and claim/3 structures
     Current_Node = node(Entity, Log_Confidence),
     Claim_Info = claim(Claimant, Claim, Claim_Creation_Time),
     % Turn log confidence into normal confidence (with sign depending on pessimistic / optimistic behaviour)
     mode(Sign), Confidence is exp(Sign * Log_Confidence),
-    % Cache this as a fluent
     assert(holdsAtCached(belief(Entity, Claimant, Claim, Claim_Creation_Time)=Confidence, T)),
     % Find the neighbours' path costs
     findall(
         (Neighbour, Cost),
         (
             holdsAtCached(trust(Neighbour, Entity)=Trust, T),
-            % Don't add it if we already know the minimum cost to that Neighbour
+            % Don't add it if we already know the best path to that Neighbour
             \+ holdsAtCached(belief(Neighbour, Claimant, Claim, Claim_Creation_Time)=_Confidence, T),
             Log_Trust is Sign * log(Trust),
             Cost is Log_Trust + Log_Confidence
@@ -240,10 +322,10 @@ propagate_claim(Current_Node, Claim_Info, T, Heap_0) :-
         New_Paths),
     % Add the newly found path costs to the heap, then find the next min (or max) cost node
     add_list_to_heap(Heap_0, New_Paths, Heap_1),
-    (get_next_node(Heap_1, Next_Node, Claim_Info, T, Heap_2))
-        -> propagate_claim(Next_Node, Claim_Info, T, Heap_2)
+    (get_next_node(Heap_1, Next_Node, Claim_Info, T, Heap_2)
+        -> propagate_claim(Next_Node, Claim_Info, Added_Entities, T, Heap_2)
         % Otherwise, we've found all the min cost paths; we're done!
-        ; true.
+        ; Added_Entities = []).
 
 % Base case; empty list.
 add_list_to_heap(Heap, [], Heap).
@@ -286,11 +368,12 @@ generate_narrative :-
     asserta(narrative(Narrative)),
     % Cache the initial conditions
     cache_holdsAt(Initial_Timestamp),
-    cache_invalidates(Initial_Timestamp),
     % Cache any newly caused events
     cache_causes(Initial_Timestamp),
     % Propagate belief changes, if applicable
-    update_beliefs(Initial_Timestamp).
+    update_beliefs(Updated_Beliefs, Initial_Timestamp),
+    update_violations(Updated_Violations, Initial_Timestamp),
+    update_expectations(Updated_Violations, Updated_Beliefs, Initial_Timestamp).
 
 % Get rid of the most recent timestamp in the narrative; it will no longer be needed
 advance_narrative :-
@@ -310,9 +393,10 @@ tick :-
     adjacent_timestamps(T_Previous, T),
     % Cache the fluents that currently hold
     cache_holdsAt(T),
-    cache_invalidates(T),
     % Propagate belief changes, if applicable
-    update_beliefs(T),
+    update_beliefs(Updated_Beliefs, T),
+    update_violations(Updated_Violations, T),
+    update_expectations(Updated_Violations, Updated_Beliefs, T),
     % Cache any newly caused events
     cache_causes(T),
     assert(cached(T)),
@@ -337,5 +421,5 @@ initialiseDEC(Mode) :-
 
 % The system is pessimistic by default
 initialiseDEC :-
-    initialiseDEC('pessimistic').
+    initialiseDEC('optimistic').
 
