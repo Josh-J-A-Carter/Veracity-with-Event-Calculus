@@ -15,7 +15,8 @@ print_dec_state :-
     tick,
     nl,nl,
     ansi_format([fg(green)], "Fluents that hold just after ~w~n", [Date]),
-    forall((holdsAt(Fluent, Future), Fluent \= (belief(_, _, _, _)=_)), (print(Fluent), nl)),
+    forall((holdsAt(Fluent, Future), Fluent \= (judgement(_, _, _)=_)), (print(Fluent), nl)),
+    forall(holdsAt(judgement(J, _E, C)=K, Future), (print(judgement(J,"...", C)=K), nl)),
     nl.
 
 ?- print_narrative.
