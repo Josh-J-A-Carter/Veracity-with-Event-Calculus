@@ -1,5 +1,6 @@
 :- use_module(library(heaps)).
 :- use_module(library(lists)).
+:- op(1200, xfy, [ ==> ]).
 :- multifile initially/1.
 :- multifile initiates/3.
 :- multifile terminates/3.
@@ -7,6 +8,7 @@
 :- multifile happens/2.
 :- multifile holdsIf/2.
 :- multifile causes/4.
+:- multifile implies/3.
 :- dynamic initially/1.
 :- dynamic initiates/3.
 :- dynamic holdsAtCached/2.
@@ -17,6 +19,7 @@
 :- dynamic optimistic/0.                % Should not be altered during computation of the narrative!
 :- dynamic require_validation/2.
 :- discontiguous initially/1.
+:- discontiguous implies/1.
 :- discontiguous initiates/3.
 :- discontiguous terminates/3.
 :- discontiguous releases/3.
@@ -112,105 +115,54 @@ cache_holdsAt(T) :-
 
 
 
-%%% Expectations
+%%% Derived judgements; i.e. judgements from implicative judgements
 
-% Cache the violates/3 predicates which occur at time T
-% update_violations(Updated_Violations, T) :-
-%     adjacent_timestamps(T_Previous, T),
-%     findall(Statement,
-%         % Find every event at T which causes any claim Claim to be invalidated
-%         (happens(Event, T_Previous),
-%         violates(Event, Expectation, T_Previous),
-%         % Ensure that the claim binds properly; we don't want unbound variables
-%         Expectation = expectation(_Entity, Statement), require_validation(Statement, _)),
-%         Unsorted_Expectations),
-%     % Remove duplicates; we only want to add more requirements to each TYPE of expectation
-%     sort(Unsorted_Expectations, Invalidated_Expectations),
-%     forall(member(Statement, Invalidated_Expectations),
-%         (
-%             % Get the current claim's existing requirements, and remove them from storage
-%             require_validation(Statement, Existing_Requirements),
-%             retractall(require_validation(Statement, _)),
-%             % Add the current timestamp as a new requirement, sort in case there are somehow duplicates, and store
-%             append(Existing_Requirements, [T_Previous], Unsorted_Requirements), sort(Unsorted_Requirements, New_Requirements),
-%             assert(require_validation(Expectation, New_Requirements))
-%         )),
-%     % Create a list of entities that have been affected, for each of the expectation types
-%     findall((Statement, Entities),
-%         % Get all the entities whose expectation has been invalidated, stored as a list
-%         (member(Statement, Invalidated_Expectations),
-%         findall(Entity,
-%             (holdsAtCached(expectation(Entity, Statement)=_Confidence, T_Previous)),
-%             Entities
-%         )),
-%         Updated_Violations).
+satisfy_constraints(Entity, Conditions, Body, T) :-
+    % Bind the variables inside of the conditions with actual values
+    bind_conditions(Entity, Conditions, T),
+    % Check constraints from the implication's body
+    call(Body).
 
-% update_expectations(Updated_Violations, Updated_Judgements, T) :-
-%     % Go through each statement which may have been updated
-%     forall(member((Statement, Affected_Entities), Updated_Violations),
-%         % Go through each entity which may have been affected, and update its expectation
-%         (forall(member(Entity, Affected_Entities),
-%             calculate_expectation(Entity, Statement, T)
-%         ))
-%     ),
-%     % Go through each statement which may have been updated
-%     forall(member((Statement, Affected_Entities), Updated_Judgements),
-%         % Go through each entity which may have been affected, and update its expectation
-%         (forall(member(Entity, Affected_Entities),
-%             calculate_expectation(Entity, Statement, T)
-%         ))
-%     ).
+bind_conditions(_Entity, [], _T).
+bind_conditions(Entity, [Condition | Conditions], T) :-
+    holdsAtCached(Condition, T)
+        -> bind_conditions(Entity, Conditions, T)
+        ; fail.
 
-% calculate_expectation(Entity, Statement, T) :-
-%     retractall(holdsAtCached(expectation(Entity, Statement)=_Old_Confidence, T)),
-%     % Get the requirements, and prepend a -1 timestamp to make sure initial judgement is checked
-%     require_validation(Statement, Timestamps),
-%     append([-1], Timestamps, Requirements),
-%     total_confidence(Entity, Statement, Requirements, 1.0, Total_Confidence, T),
-%     (Total_Confidence \= 0
-%         -> assert(holdsAtCached(expectation(Entity, Statement)=Total_Confidence, T))
-%         ; true).
+% There is only one claim left; we can't build a tuple with one element
+claims_to_judgements(Entity, [], [], Acc, Acc) :- !.
+claims_to_judgements(Entity, [Claim | Claims], [judgement(Entity, _Evidence, Claim)=Confidence | Judgements], Acc, Total) :-
+    !, claims_to_judgements(Entity, Claims, Judgements, Acc * Confidence, Total).
 
-% % Base case; there are no more requirements after this one
-% % We only need to check LOWER time bound, since the future is undefined
-% total_confidence(Entity, Statement, [Req | []], Accumulated_Confidence, Total_Confidence, T) :-
-%     % Check for a judgement which applies after Req
-%     findall(Confidence,
-%         (
-%             holdsAtCached(judgement(Entity, _Judge, Statement, Claim_Creation_Time)=Confidence, T),
-%             Claim_Creation_Time > Req
-%         ),
-%         Relevant_Scores),
-%     % If the list is empty, we're missing a judgement for this window, so total confidence is zero
-%     (Relevant_Scores = []
-%         -> Total_Confidence = 0
-%         % There is indeed at least one confidence value; take the optimal one
-%         ; ((optimistic
-%                 -> max_list(Relevant_Scores, Optimal_Value)
-%                 ; min_list(Relevant_Scores, Optimal_Value)),
-%            Total_Confidence is Accumulated_Confidence * Optimal_Value)).
+% Go to each Entity whose (base) judgements have been changed at T
+% Try to derive new judgements for Entity, using implication rules
+derive_implied_judgements([], _T).
+derive_implied_judgements([Entity | Remaining_Entities], T) :-
+    repeat,
+    derive_once(Entity, T, Again),
+    Again = false,
+    !, derive_implied_judgements(Remaining_Entities, T).
 
-% % There are still requirements to satisfy
-% total_confidence(Entity, Statement, Requirements, Accumulated_Confidence, Total_Confidence, T) :-
-%     Requirements = [Req_1, Req_2 | Remaining_Requirements],
-%     % Check for a judgement which applies between Req_1 and Req_2
-%     findall(Confidence,
-%         (
-%             holdsAtCached(judgement(Entity, _Judge, Statement, Claim_Creation_Time)=Confidence, T),
-%             Claim_Creation_Time > Req_1, Claim_Creation_Time =< Req_2
-%         ),
-%         Relevant_Scores),
-%     % If there is no such confidence value, stop recursing and set the total confidence to zero
-%     % This is because we are missing a judgement during this window of time
-%     (Relevant_Scores = []
-%         -> Total_Confidence = 0
-%         % There is indeed at least one confidence value; take the optimal one
-%         ; ((optimistic
-%                 -> max_list(Relevant_Scores, Optimal_Value)
-%                 ; min_list(Relevant_Scores, Optimal_Value)),
-%            New_Acc is Accumulated_Confidence * Optimal_Value,
-%            total_confidence(Entity, Statement, [Req_2 | Remaining_Requirements], New_Acc, Total_Confidence, T))).
-
+derive_once(Entity, T, Again) :-
+    % Check every implication that is relevant to this entity
+    forall(
+        (
+            clause(implies(Conditions ==> Consequence, T), Body),
+            % Turn the claims into unbound judgements
+            claims_to_judgements(Entity, Conditions, Judgements, 1.0, Total_Confidence),
+            % Try to bind the judgements to actual variables based on the Entity's existing judgements
+            % and based on the Body clause (which needs to be check *after* instantiation)
+            satisfy_constraints(Entity, Judgements, Body, T)
+        ),
+        (
+            % % Attempt to satisfy / initialise the judgements
+            (Confidence is Total_Confidence, Resulting_Judgement = (judgement(Entity, Judgements, Consequence)=Confidence),
+            \+ holdsAtCached(Resulting_Judgement, T))
+                -> (assert(holdsAtCached(Resulting_Judgement, T)),
+                    Again = true)
+                ; true
+        )
+    ).
 
 
 %%% Trust & judgement handling
@@ -243,7 +195,7 @@ is_atomic([Evidence | Remaining_Evidence]) :-
     Evidence \= (judgement(_, _, _)=_),
     is_atomic(Remaining_Evidence).
 
-update_judgements(Updated_Judgements, T) :-
+update_judgements(Affected_Entities, T) :-
     % judgements can be updated from changing trust, changing judgements, or initial judgement conditions
     List_Of_Lists = [List_1, List_2, List_3],
     adjacent_timestamps(T_Previous, T),
@@ -291,12 +243,14 @@ update_judgements(Updated_Judgements, T) :-
     append(List_Of_Lists, Merged_List),
     sort(Merged_List, Judgements_To_Update),
     (Judgements_To_Update = []
-        -> Updated_Judgements = []
+        -> Affected_Entities = []
         % For each updated judgement, propagate the changes through the network
-        ; findall((Judgement, Affected_Entities),
+        ; (findall(Entities,
             (member(Judgement, Judgements_To_Update),
-            update_judgement(Judgement, Affected_Entities, T)),
-            Updated_Judgements)).
+            update_judgement(Judgement, Entities, T)),
+            Unsorted_Entities)),
+            append(Unsorted_Entities, Flattened_List),
+            sort(Flattened_List, Affected_Entities)).
 
 % Does some evidence depend on a given judgement?
 depends_directly([Evidence | Remaining_Evidence], Judgement) :-
@@ -447,9 +401,9 @@ tick :-
     % Cache the fluents that currently hold
     cache_holdsAt(T),
     % Propagate judgement changes
-    update_judgements(_Updated_Judgements, T),
+    update_judgements(Affected_Entities, T),
     % Apply implicative judgement rules to derive new judgements where necessary
-    %%%%%%%%%%%%%%%%%%%%%%
+    derive_implied_judgements(Affected_Entities, T),
     cache_causes(T),
     assert(cached(T)),
     % Forget the previous timestamp as it has just been simulated (move the narrative along by one)

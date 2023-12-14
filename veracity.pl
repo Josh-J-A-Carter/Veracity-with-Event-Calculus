@@ -18,8 +18,9 @@ initially(trust(customer, retailer)=0.95).
 % To supply complex Evidence involving multiple judgements, use 'implies'
 initiates(verify(Entity, Evidence, Claim, Confidence), judgement(Entity, [Evidence], Claim)=Confidence, _T).
 
-% If A judges that O is organic at T_Prev, and A judges at T that O has not changed since T_Prev, then A should also judge that O is organic at T
-implies([judgement(A, _, claim(O, "organic", T_Prev))=_, judgement(A, _, claim(O, no_change(T_Prev), T))=_], judgement(A, _, claim(O, "organic", T))=_, T).
+% If (O is verified as organic at T1) and (O is verified as not having changed since T1),
+% then (O is verified as organic at T2) - provided T1 < T2
+implies([claim(O, "organic", T1), claim(O, no_change(T1), T2)] ==> claim(O, "organic", T2), _T) :- T1 < T2.
 
 initiates(change_trust(A, B, Trust), trust(A, B)=Trust, _T).
 
@@ -34,7 +35,9 @@ happens(query, 1002).
 
 happens(change_trust(customer, winery, 0.9), 1003).
 
-happens(query, 1004).
+happens(verify(winery, "eyes", claim(bottle_1, no_change(1001), 1004), 1.0), 1004).
+
+happens(query, 1005).
 % % Transportation handles the bottle
 % happens(handle(organic_transportation, bottle_1), 1100).
 % % Claims that the bottle was not changed in an inorganic way
