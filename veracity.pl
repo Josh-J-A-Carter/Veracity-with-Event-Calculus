@@ -37,7 +37,9 @@ happens(change_trust(customer, winery, 0.9), 1003).
 
 happens(verify(winery, "eyes", claim(bottle_1, no_change(1001), 1004), 1.0), 1004).
 
-happens(query, 1005).
+happens(verify(winery, "eyes", claim(bottle_1, no_change(1001), 1004), 0), 1005).
+
+happens(query, 1007).
 % % Transportation handles the bottle
 % happens(handle(organic_transportation, bottle_1), 1100).
 % % Claims that the bottle was not changed in an inorganic way

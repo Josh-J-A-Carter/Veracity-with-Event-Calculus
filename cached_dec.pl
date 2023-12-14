@@ -254,10 +254,13 @@ update_judgements(Affected_Entities, T) :-
 
 % Does some evidence depend on a given judgement?
 depends_directly([Evidence | Remaining_Evidence], Judgement) :-
+    Evidence = (judgement(J2, E2, C2)=_),
+    Judgement = (judgement(J1, E1, C1)=_),
     % This depends on Judgement if the current piece of Evidence is Judgement
-    (Evidence = Judgement) -> true
-    % OR any of the remaining pieces of evidence depend on Judgement
-    ; depends_directly(Remaining_Evidence, Judgement).
+    ((J1, E1, C1) = (J2, E2, C2))
+        -> true
+        % OR any of the remaining pieces of evidence depend on Judgement
+        ; depends_directly(Remaining_Evidence, Judgement).
 
 % It isn't dependent if we reach the end of the list without binding Evidence = Judgement
 depends_directly([], _Judgement) :- !, fail.
