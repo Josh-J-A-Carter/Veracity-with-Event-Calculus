@@ -125,9 +125,8 @@ satisfy_constraints(Entity, Conditions, Body, T) :-
 
 bind_conditions(_Entity, [], _T).
 bind_conditions(Entity, [Condition | Conditions], T) :-
-    (holdsAtCached(Condition, T)
-        -> (bind_conditions(Entity, Conditions, T))
-        ; fail).
+    holdsAtCached(Condition, T),
+    bind_conditions(Entity, Conditions, T).
 
 % There is only one claim left; we can't build a tuple with one element
 claims_to_judgements(_Entity, [], [], Acc, Acc) :- !.
