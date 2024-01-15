@@ -1,4 +1,6 @@
-:- initialiseDEC. :- retractall(happens(_,_)).% Initial trust levels
+:- initialiseDEC. :- retractall(happens(_,_)).%%% Rules
+
+% Initial trust levels
 initially(trust(customer, winery)=1.0).
 initially(trust(customer2, customer)=0.9).
 initially(trust(customer2, winery)=0.95).
@@ -38,5 +40,4 @@ happens(verify(retailer, "audit", claim(bottle_1, no_change(1101), 1201), 1.0), 
 
 % % What fluents hold at T=1500?
 happens(query, 1500).
-
 :- generate_narrative.

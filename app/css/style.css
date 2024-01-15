@@ -11,7 +11,7 @@ html, body, #container {
 #input {
     justify-content: left;
     /* background-color: blue; */
-    flex-grow: 2;
+    flex-grow: 1;
     align-items: stretch;
     height: 90%;
     margin: 6px;
@@ -21,7 +21,8 @@ html, body, #container {
     justify-content: right;
     /* background-color: red; */
     align-items: stretch;
-    flex-grow: 3;
+    flex-grow: 1;
+    width: 50%;
     height: 90%;
     margin: 4px;
 }
