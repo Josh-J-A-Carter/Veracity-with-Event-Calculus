@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veracity Logic</title>
+    <script src="js/app.js" defer></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="container">
+        <!-- Input Section -->
+        <div id="input">
+
+            <form action="/update" method="post">
+                <!-- Specifying Event Calculus rules -->
+                <label for="rules">Rules</label>
+                <textarea id="rules" name="rules"></textarea><br><br>
+
+                <!-- Specifying the narrative -->
+                <label for="narrative">Narrative</label>
+                <textarea id="narrative" name="narrative"></textarea><br><br>
+
+                <!-- Submitting the code for evaluation in the EEC -->
+                <input type="submit" id="submit" value="Generate Narrative" /><br><br>
+            </form>
+
+        </div>
+
+        <!-- Display section -->    
+        <div id="display">
+
+        </div>
+    </div>
+</body>
+</html>
