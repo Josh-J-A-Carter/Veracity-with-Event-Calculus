@@ -421,7 +421,8 @@ initialiseDEC(Mode) :-
     retractall(optimistic),
     ((Mode = 'optimistic') 
         -> assert(optimistic)
-        ; true).
+        ; true),
+    generate_narrative.
 
 % Optimistic by default;
 % can't really use pessimistic mode due to that being an NP-complete problem
