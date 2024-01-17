@@ -22,9 +22,9 @@ update_eec(Request) :-
     member(method(post), Request), !,
     http_read_data(Request, Data, []),
     atom_json_term(Data, InJSON, []),
-    InJSON = json(Elements), member(rules=Rules, Elements), member(narrative=Narrative, Elements),
+    InJSON = json(Elements), member(code=Code, Elements),
     % Write the client's code to a file, consult it, and return the output as JSON
-    write_to_file(Rules, Narrative, File),
+    write_to_file(Code, File),
     retractall(happens(_,_)), [File], initialiseDEC,
     format('Content-type: application/json~n~n', []),
     construct_json_narrative(Timeline),
@@ -32,12 +32,11 @@ update_eec(Request) :-
     json_write(current_output, OutJSON).
 
 % Write the client's code to a local server file
-write_to_file(Rules, Narrative, Filename) :-
+write_to_file(Code, Filename) :-
     Filename = 'client_code.pl',
     open(Filename, write, OS),
     (
-        write(OS, Rules),
-        write(OS, Narrative),
+        write(OS, Code),
         false
         ;
         close(OS)

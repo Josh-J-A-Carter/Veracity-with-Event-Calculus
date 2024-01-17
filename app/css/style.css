@@ -7,27 +7,20 @@ html, body, #container {
 #container  {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    row-gap: 4px;
+    column-gap: 16px;
+    height: 95%;
+    width: 95%;
+    margin: auto;
+    padding: 10px;
 }
 
 #input {
     height: 90%;
-    margin: 6px;
     min-width: 50%;
-}
-
-#display {
-    height: 90%;
-    margin: 4px;
-}
-
-#graph-wrapper {
-    border: 2px black solid;
-    height: 50%;
-}
-
-#graph {
-    height: 100%;
-    width: 100%;
+    grid-column: 1;
+    grid-row: 1 / 3;
 }
 
 #input form {
@@ -35,16 +28,55 @@ html, body, #container {
     height: 100%;
 }
 
-#input #rules {
+#input #code {
     width: 100%;
-    height: 35%;
+    height: 100%;
     box-sizing: border-box;
     resize: none;
 }
 
-#input #narrative {
+#info {
+    grid-column: 2;
+    grid-row: 1;
+    height: 100%;
     width: 100%;
-    height: 55%;
-    box-sizing: border-box;
-    resize: none;
+    /* margin: 4px; */
 }
+
+#info #timeline {
+    width: 100%;
+    background: #d3d3d3;
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+}
+
+#info #timeline::-moz-range-thumb {
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #04AA6D; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+#info #timeline::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #04AA6D; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+#graph-wrapper {
+    grid-column: 2;
+    grid-row: 2;
+    border: 2px black solid;
+    height: 45%;
+    height: 90%;
+}
+
+#graph {
+    height: 100%;
+    width: 100%;
+}
+
+
