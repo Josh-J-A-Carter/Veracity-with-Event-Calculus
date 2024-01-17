@@ -31,11 +31,11 @@ function updateGraph() {
 				var hovertext = judgements.reduce((text, judgement) => {
 					// This judgement doesn't relate to this node, so don't change the text
 					if (judgement.args[0] != id) return text;
-					console.log(judgement.args[2]);
 
-					// Otherwise, update the text by including the claim
+					// Otherwise, update the text by including this claim (in Prolog style)
 					var val = (Math.round(judgement.value * 100) / 100).toFixed(2);
-					return `• claim(${judgement.args[2].args})=${val}\n${text}`;
+					var claim = jsonToPrologTerm(judgement.args[2]);
+					return `• ${claim}=${val}\n${text}`;
 				},
 				// Initialise the reduce function with the node's id
 				`\n${id}`);
@@ -85,8 +85,9 @@ function updateGraph() {
 				'background-color': '#666',
 				'label': 'data(hovertext)',
 				'color': '#FFF',
+				'font-size': '16px',
 				'text-background-color': '#000',
-				'text-background-opacity': '0.9',
+				'text-background-opacity': '0.75',
 				'text-background-shape': 'round-rectangle',
 				'text-background-padding': '6px',
 				'text-wrap': 'wrap',
@@ -99,8 +100,8 @@ function updateGraph() {
 			selector: 'edge',
 			  style: {
 				'width': 2,
-				'line-color': '#ccc',
-				'target-arrow-color': '#888',
+				'line-color': '#444',
+				'target-arrow-color': '#444',
 				'target-arrow-shape': 'triangle',
 				'curve-style': 'bezier',
 				// 'label': 'data(weight)'
@@ -123,6 +124,17 @@ function updateGraph() {
 	// Ensure that the hovertext appears / disappears when the mouse moves onto or away from a node
 	cy.on("mouseover", "node", event => event.target.addClass("hover"));
 	cy.on("mouseout", "node.hover", event => event.target.removeClass("hover"));
+}
+
+function jsonToPrologTerm(json) {
+	// Atoms (base case)
+	if (json.args == undefined) return json;
+	
+	// Complex terms (recursive case)
+	jsonifiedArguments = json.args.map(arg => jsonToPrologTerm(arg));
+	functor = json.type;
+
+	return `${functor}(${jsonifiedArguments})`;
 }
 
 function updateSlider() {
