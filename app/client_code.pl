@@ -5,6 +5,7 @@ initially(trust(customer, winery)=1.0).
 initially(trust(customer2, customer)=0.9).
 initially(trust(customer2, winery)=0.95).
 initially(trust(customer, organic_transportation)=0.97).
+initially(trust(organic_transportation, random_transportation)=0.2).
 initially(trust(customer, random_transportation)=0.4).
 initially(trust(customer, retailer)=0.95).
 

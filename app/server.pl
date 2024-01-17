@@ -11,6 +11,9 @@ server(Port) :- http_server(http_dispatch, [port(Port)]).
 :- http_handler(root(_Path), http_reply_file('index.html', []), []).
 :- http_handler(root('js/app.js'), http_reply_file('js/app.js', []), []).
 :- http_handler(root('js/cytoscape.js'), http_reply_file('js/cytoscape.js', []), []).
+% :- http_handler(root('js/cytoscape-euler.js'), http_reply_file('js/cytoscape-euler.js', []), []).
+:- http_handler(root('js/cytoscape-klay.js'), http_reply_file('js/cytoscape-klay.js', []), []).
+:- http_handler(root('js/klay.js'), http_reply_file('js/klay.js', []), []).
 :- http_handler(root('css/style.css'), http_reply_file('css/style.css', []), []).
 :- http_handler(root('update_eec'), update_eec, []).
 
