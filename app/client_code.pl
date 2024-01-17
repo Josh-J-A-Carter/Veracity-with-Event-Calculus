@@ -8,6 +8,7 @@ initially(trust(customer, organic_transportation)=0.97).
 initially(trust(organic_transportation, random_transportation)=0.2).
 initially(trust(customer, random_transportation)=0.4).
 initially(trust(customer, retailer)=0.95).
+initially(trust(customer3, customer4)=0.85).
 
 % If Entity verifies a Claim, it creates a judgement that some Evidence verifyes the Claim
 % Evidence has to be atomic; it is not further analysable in the veracity logic (though it may still be a complex prolog structure)

@@ -15,25 +15,49 @@ function updateGraph() {
 
 	//// Update graphical representation of the relevant fluents
 
+	// Collect the nodes and edges which will be contained in the set
+	// We also want to display their judgements when nodes are hovered over
 	var graph = new Set();
+	var judgements = current_info.fluents.filter(fluent => fluent.type == "judgement" && fluent.args.length == 3);
+
 	current_info.fluents
-		// We only want 'trust' fluents with two arguments
+		// We only want nodes involved in 'trust/2' fluents
 		.filter(fluent => fluent.type == "trust" && fluent.args.length == 2)
 		.forEach(fluent => {
-			// Add each argument as nodes to the graph
-			graph.add({
-				data : { id : fluent.args[0] }
-			});
-			graph.add({
-				data : { id : fluent.args[1] }
-			});
+
+			// Construct the hovertext for a given node, by looking up their current judgements
+			const constructHovertext = id => {
+
+				var hovertext = judgements.reduce((text, judgement) => {
+					// This judgement doesn't relate to this node, so don't change the text
+					if (judgement.args[0] != id) return text;
+					console.log(judgement.args[2]);
+
+					// Otherwise, update the text by including the claim
+					var val = (Math.round(judgement.value * 100) / 100).toFixed(2);
+					return `• claim(${judgement.args[2].args})=${val}\n${text}`;
+				},
+				// Initialise the reduce function with the node's id
+				`\n${id}`);
+
+				return hovertext;
+			};
+
+			const name1 = fluent.args[0];
+			const hovertext1 = constructHovertext(name1);
+			graph.add({ data : { id : name1, hovertext : hovertext1 }});
+
+			const name2 = fluent.args[1];
+			const hovertext2 = constructHovertext(name2);
+			graph.add({ data : { id : name2, hovertext : hovertext2 }});
+			
 			// Add the edge to the graph
 			graph.add({
 				data : { 
-					id : `trust(${fluent.args[0]}, ${fluent.args[1]})=${fluent.value}`,
-					source : fluent.args[0],
-					target : fluent.args[1],
-					// weight : fluent.value
+					id : `trust(${name1}, ${name2})`,
+					source : name1,
+					target : name2,
+					weight : fluent.value
 				}
 			})
 		});
@@ -48,10 +72,27 @@ function updateGraph() {
 			style: {
 				'background-color': '#666',
 				'label': 'data(id)',
-				'font-size': 'smaller',
+				'font-size': '14px',
 				'text-wrap': 'ellipsis',
 				'text-max-width': '200px',
-				'text-overflow-wrap': 'anywhere'
+				'text-overflow-wrap': 'anywhere',
+				'text-events': 'yes'
+			}
+		},
+		{
+			selector: 'node.hover',
+			style: {
+				'background-color': '#666',
+				'label': 'data(hovertext)',
+				'color': '#FFF',
+				'text-background-color': '#000',
+				'text-background-opacity': '0.9',
+				'text-background-shape': 'round-rectangle',
+				'text-background-padding': '6px',
+				'text-wrap': 'wrap',
+				'text-max-width': '400px',
+				'text-overflow-wrap': 'whitespace',
+				'text-events': 'yes'
 			}
 		},
 		{
@@ -59,7 +100,7 @@ function updateGraph() {
 			  style: {
 				'width': 2,
 				'line-color': '#ccc',
-				'target-arrow-color': '#ccc',
+				'target-arrow-color': '#888',
 				'target-arrow-shape': 'triangle',
 				'curve-style': 'bezier',
 				// 'label': 'data(weight)'
@@ -78,6 +119,10 @@ function updateGraph() {
 
 	cy.minZoom(0.5);
 	cy.maxZoom(2);
+
+	// Ensure that the hovertext appears / disappears when the mouse moves onto or away from a node
+	cy.on("mouseover", "node", event => event.target.addClass("hover"));
+	cy.on("mouseout", "node.hover", event => event.target.removeClass("hover"));
 }
 
 function updateSlider() {
@@ -89,7 +134,6 @@ function moveSlider(event) {
 	if (timeline == undefined) return;
 	
 	current_timestamp = timeline[event.target.value - 1].timestamp;
-	console.log(current_timestamp);
 
 	updateGraph();
 }
