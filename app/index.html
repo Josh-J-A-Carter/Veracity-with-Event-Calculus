@@ -31,11 +31,22 @@
             <label for="timeline">Timeline</label>
             <input type="range" min="1" max="1" value="1" id="timeline">
 
-            <label for="events" id="events-label">Events at timestamp 0</label>
+            <!-- <label for="events" id="events-label">Events at timestamp 0</label>
             <textarea id="events" name="events" disabled></textarea>
 
             <label for="fluents" id="fluents-label">Fluents just after timestamp 0</label>
-            <textarea id="fluents" name="fluents" disabled></textarea>
+            <textarea id="fluents" name="fluents" disabled></textarea> -->
+
+            <label for="display-options">Graph display options</label>
+            <div id="display-options" class="menu">
+                <button class="active" onclick="changeFluentMode(this, 'trust')">Trust fluents</button>
+                <button onclick="buttonClick(this, 'claim(123)')">Judgements for claim(...)</button>
+            </div>
+
+            <label for="selected-node" id="selected-node-label">No node selected</label>
+            <div id="selected-node" class="menu">
+                <textarea id="selected-node-text"></textarea>
+            </div>
         </div>
 
         <!-- This is where graphics are drawn -->
