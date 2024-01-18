@@ -48,6 +48,7 @@ html, body, #container {
     background: #d3d3d3;
     -webkit-appearance: none;  /* Override default CSS styles */
     appearance: none;
+    padding: 0;
 }
 
 #info #timeline::-moz-range-thumb {
@@ -66,10 +67,18 @@ html, body, #container {
     cursor: pointer; /* Cursor on hover */
 }
 
+#info textarea {
+    width: 100%;
+    resize: none;
+    height: 15vh;
+    padding: 0;
+}
+
 #graph-wrapper {
     grid-column: 2;
     grid-row: 2;
     border: 2px black solid;
+    padding: 0;
     height: 45%;
     height: 90%;
 }

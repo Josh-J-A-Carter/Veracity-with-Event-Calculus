@@ -1,4 +1,4 @@
-function updateGraph() {
+function updateDisplay() {
 	// Get the information relating to the selected timestamp, making sure that the selected timestamp actually exists
 	var current_info = timeline.find(slice => slice.timestamp === current_timestamp);
 	if (current_info == undefined) {
@@ -6,11 +6,43 @@ function updateGraph() {
 		current_timestamp = current_info.timestamp;
 	}
 
-	//// Show timeline bar
+	//// Update the timeline slider
+	slider.max = timeline.length;
+	slider.min = 1;
 
+	const eventsLabel = document.getElementById("events-label");
+	eventsLabel.innerHTML = `Events at timestamp ${current_timestamp}`;
+	const eventsText = document.getElementById("events");
+	eventsText.value = current_info.events
+			.map(event => jsonToPrologTerm(event))
+			.join("\n");
 
-	//// Update textual representation of this timestamp
-	// const displayArea = document.getElementById("info");
+	const fluentsLabel = document.getElementById("fluents-label");
+	fluentsLabel.innerHTML = `Fluents just after timestamp ${current_timestamp}`;
+	const fluentsText = document.getElementById("fluents");
+	fluentsText.value = current_info.fluents
+			.map(fluent => jsonToPrologTerm(fluent))
+			.join("\n");
+
+	// Update textarea heights to fit text,
+	// making sure that events + fluents is not bigger than the maximum area
+	// by sharing the height by their ratios
+	maxHeight = window.innerHeight * 0.32;
+	minHeight = 15;
+
+	var eventsHeight = eventsText.value.split(/\r|\r\n|\n/).length
+	var fluentsHeight = fluentsText.value.split(/\r|\r\n|\n/).length
+
+	sum = fluentsHeight + eventsHeight;
+	
+	newFluentsHeight = Math.max((fluentsHeight / sum) * maxHeight, minHeight);
+	newEventsHeight = Math.max((eventsHeight / sum) * maxHeight, minHeight);
+
+	newFluentsHeight = Math.min(newFluentsHeight, maxHeight - minHeight);
+	newEventsHeight = Math.min(newEventsHeight, maxHeight - minHeight);
+
+	fluentsText.style.height = `${newFluentsHeight}px`;
+	eventsText.style.height = `${newEventsHeight}px`;
 
 
 	//// Update graphical representation of the relevant fluents
@@ -62,6 +94,7 @@ function updateGraph() {
 			})
 		});
 
+	// Display the graph
 	var cy = cytoscape({
 		container: document.getElementById("graph"), // container to render in
 		elements: [...graph],
@@ -100,8 +133,8 @@ function updateGraph() {
 			selector: 'edge',
 			  style: {
 				'width': 2,
-				'line-color': '#444',
-				'target-arrow-color': '#444',
+				'line-color': '#666',
+				'target-arrow-color': '#666',
 				'target-arrow-shape': 'triangle',
 				'curve-style': 'bezier',
 				// 'label': 'data(weight)'
@@ -127,19 +160,19 @@ function updateGraph() {
 }
 
 function jsonToPrologTerm(json) {
+	// List of json terms (base case)
+	if (json instanceof Array) return json.map(element => jsonToPrologTerm(element));
 	// Atoms (base case)
 	if (json.args == undefined) return json;
 	
 	// Complex terms (recursive case)
 	jsonifiedArguments = json.args.map(arg => jsonToPrologTerm(arg));
 	functor = json.type;
+	
+	if (json.value == undefined) return `${functor}(${jsonifiedArguments})`;
 
-	return `${functor}(${jsonifiedArguments})`;
-}
-
-function updateSlider() {
-	slider.max = timeline.length;
-	slider.min = 1;
+	value = (Math.round(json.value * 100) / 100).toFixed(2);
+	return `${functor}(${jsonifiedArguments})=${value}`;
 }
 
 function moveSlider(event) {
@@ -147,7 +180,7 @@ function moveSlider(event) {
 	
 	current_timestamp = timeline[event.target.value - 1].timestamp;
 
-	updateGraph();
+	updateDisplay();
 }
 
 // Update the EEC without redirecting to another page
@@ -169,8 +202,7 @@ function submit(event) {
         .then(res => res.json())
         .then(data => {
             timeline = data.timeline;
-			updateGraph();
-			updateSlider();
+			updateDisplay();
         });
 
     event.preventDefault();
