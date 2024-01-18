@@ -161,7 +161,11 @@ function updateDisplay() {
 
 function jsonToPrologTerm(json) {
 	// List of json terms (base case)
-	if (json instanceof Array) return json.map(element => jsonToPrologTerm(element));
+	//// if (json instanceof Array) return json.map(element => jsonToPrologTerm(element));
+	// Printing all of the 'evidence' for a judgement makes it impossible to read!
+	// Instead, we note that it has been cut down - the proof tree can be found elsewhere
+	if (json instanceof Array) return "(...)";
+
 	// Atoms (base case)
 	if (json.args == undefined) return json;
 	
