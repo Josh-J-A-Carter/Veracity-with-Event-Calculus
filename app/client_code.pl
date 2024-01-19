@@ -20,7 +20,7 @@ implies([claim(O, "organic", T1), claim(O, no_change(T1), T2)] ==> claim(O, "org
 initiates(change_trust(A, B, Trust), trust(A, B)=Trust, _T).
 
 
-%%% Narrative
+%%% Narrat ive
 
 % Handles the bottle
 happens(handle(winery, bottle_1), 1000).

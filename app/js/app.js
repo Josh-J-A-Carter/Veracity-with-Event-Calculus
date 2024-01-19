@@ -12,7 +12,9 @@ function updateDisplay() {
 	slider.min = 1;
 
 	// Update the display options
-	var options = [{ fluent_data : "trust", display : "Trust fluents" }];
+	// Always have the option of trust fluents, but also make it clear if there aren't any trust fluents in this current timestamp
+	const trust_fluent_found = current_info.fluents.find(fluent => fluent.type == "trust" && fluent.args.length == 2)
+	var options = [{ fluent_data : "trust", display : "Trust fluents", current : trust_fluent_found != undefined }];
 	
 	current_info.fluents
 		.filter(fluent => fluent.type == "judgement" && fluent.args.length == 3)
@@ -20,7 +22,29 @@ function updateDisplay() {
 		.reduce((acc, judgement) => {
 			// Construct the object using Prolog's complex term style
 			var claim = jsonToPrologTerm(judgement.args[2]);
-			var obj = { fluent_data : claim, display : `Judgements for ${claim}` };
+			var obj = { fluent_data : claim, display : `Judgements for ${claim}`, current : true };
+
+			// Is the object already there?
+			const already_present = acc.find(f => f.fluent_data == claim);
+			if (!already_present) acc.push(obj);
+			return acc;
+		}, options);
+	
+	// Get the judgement/3 fluents from all other timestamps and add them in as well
+	// They should be selectable from any timestamp, but displayed as being not relevant to this timestamp
+	var t = timeline
+		// We've already processed this time stamp, so ignore them.
+		.filter(slice => slice.timestamp != current_timestamp)
+		// Turn each timestamp into a list of its fluents, specifically the judgement/3 predicates
+		.map(slice => slice.fluents.filter(fluent => fluent.type == "judgement" && fluent.args.length == 3))
+		// Turn the list of lists of judgements into one list of judgements
+		.flat(1)
+		// Put the list of judgements into the 'options' list,
+		// being careful to avoid duplicates
+		.reduce((acc, judgement) => {
+			// Construct the object using Prolog's complex term style
+			var claim = jsonToPrologTerm(judgement.args[2]);
+			var obj = { fluent_data : claim, display : `Judgements for ${claim}`, current : false };
 
 			// Is the object already there?
 			const already_present = acc.find(f => f.fluent_data == claim);
@@ -30,21 +54,20 @@ function updateDisplay() {
 	
 	// Turn the options into one string of html elements
 	const options_html = options.reduce((text, option) => {
-		// If this option is not already selected, don't give it the 'active' class
-		if (fluent_graph != option.fluent_data) return `${text}<button onclick="changeFluentMode(this, \'${option.fluent_data}\')">${option.display}</button>`;
-		// Otherwise, it's active
-		return `${text}<button class="active" onclick="changeFluentMode(this, \'${option.fluent_data}\')">${option.display}</button>`;
+
+		var is_active = graph_mode == option.fluent_data;
+		var is_current = option.current == true;
+		var classes = `${is_active ? "active" : ""} ${is_current ? "" : "not-current"}`;
+
+		return `${text}<button class="${classes}" onclick="changeFluentMode(this, \'${option.fluent_data}\')">${option.display}</button>`;
 	}, "");
 
 	// Displaying the options
 	const display_options_div = document.getElementById("display-options");
 	display_options_div.innerHTML = options_html;
 
-	// Do something if the currently selected fluent_graph mode isn't there
-	// Maybe display ALL possible fluents, just greyed out to indicate that they aren't in the current timestamp?
 
 
-	
 
 	// const eventsLabel = document.getElementById("events-label");
 	// eventsLabel.innerHTML = `Events at timestamp ${current_timestamp}`;
@@ -98,10 +121,10 @@ function updateGraph() {
 	if (current_info == undefined) return;
 
 	// Default to displaying trust fluents
-	if (fluent_graph == undefined) fluent_graph = 'trust';
+	if (graph_mode == undefined) graph_mode = 'trust';
 
-	if (fluent_graph == 'trust') var obj = calculateTrustGraph();
-	// else var obj = calculateJudgementGraph();
+	if (graph_mode == 'trust') var obj = calculateTrustGraph();
+	else var obj = calculateJudgementGraph();
 
 	const { graph, display_information } = obj;
 
@@ -175,7 +198,7 @@ function updateGraph() {
 		const selected_node_label = document.getElementById('selected-node-label');
 		const selected_node_text = document.getElementById('selected-node-text');
 	
-		if (fluent_graph == 'trust') selected_node_label.innerHTML = `Judgements held by ${selected_node}`;
+		if (graph_mode == 'trust') selected_node_label.innerHTML = `Judgements held by ${selected_node}`;
 		else selected_node_label.innerHTML = "Proof tree for selected judgement";
 	
 		// Update the display area text
@@ -195,13 +218,55 @@ function updateGraph() {
 		selected_node_text.value = "";
 		return;
 	}
-	else if (fluent_graph == 'trust') selected_node_label.innerHTML = `Judgements held by ${selected_node}`;
+	else if (graph_mode == 'trust') selected_node_label.innerHTML = `Judgements held by ${selected_node}`;
 	else selected_node_label.innerHTML = "Proof tree for selected judgement";
 
 	// Update the display area text
 	var entry = display_information.find(node => node.id == selected_node);
 	if (entry != undefined) selected_node_text.value = entry.text;
 	else selected_node_text.value = "";
+}
+
+function calculateJudgementGraph() {
+	// Collect the nodes and edges in a set
+	var graph = new Set();
+
+	// We also want to display judgements when nodes are hovered over
+	var display_information = [];
+	var trust = current_info.fluents.filter(fluent => fluent.type == "trust" && fluent.args.length == 2);
+
+	// Iterate over all the trust/2 fluents to find the relevant nodes and edges
+	current_info.fluents
+		// We only want nodes involved in 'judgement/3' fluents, relating to the selected claim / graph mode
+		.filter(fluent => fluent.type == "judgement" && fluent.args.length == 3 && jsonToPrologTerm(fluent.args[2]) == graph_mode)
+		.forEach(fluent => {
+			const name = fluent.args[0];
+			const display_text = ""
+			graph.add({ data : { id : name }});
+			display_information.push({
+				id : name,
+				text : display_text
+			});
+			
+			// Go through the trust/2 fluents to find all the nodes which trust this one
+			// They will also be involved in this graph, so there should be an edge between them
+			trust.forEach(fluent => {
+				var trustor = fluent.args[0];
+				var trustee = fluent.args[1];
+				if (trustee != name) return;
+
+				graph.add({
+					data : { 
+						id : `trust(${trustor}, ${trustee})`,
+						source : trustor,
+						target : trustee,
+						weight : fluent.value
+					}
+				})
+			});
+		});
+	
+	return { graph, display_information };
 }
 
 function calculateTrustGraph() {
@@ -283,7 +348,7 @@ function jsonToPrologTerm(json) {
 
 // Callback function for when a button is clicked in order to change
 // the fluents being graphically displayed
-function changeFluentMode(button, fluent_graph_mode) {
+function changeFluentMode(button, mode) {
 	// If this button is already in the "active" class, return early
 	const classList = Array.from(button.classList);
 	if (classList.includes('active')) return;
@@ -294,7 +359,7 @@ function changeFluentMode(button, fluent_graph_mode) {
 	button.classList.add('active');
 
 	// Redraw the graph accordingly
-	fluent_graph = fluent_graph_mode;
+	graph_mode = mode;
 	updateGraph();
 }
 
@@ -343,7 +408,7 @@ var timeline = undefined;
 // The timestamp being displayed
 var current_timestamp = undefined;
 // The type of fluents being displayed in the graph
-var fluent_graph = 'trust';
+var graph_mode = 'trust';
 // The node in the graph that is currently selected
 // If a node is selected, its information (e.g. judgements) are displayed
 var selected_node = undefined;

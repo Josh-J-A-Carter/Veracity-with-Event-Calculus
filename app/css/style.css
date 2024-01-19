@@ -91,6 +91,10 @@ html, body, #container {
     text-align: left;
 }
   
+.menu button.not-current {
+    background-color: #ecc;
+}
+
 .menu button:hover {
     background-color: #ccc; /* Dark grey background on mouse-over */
 }
