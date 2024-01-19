@@ -6,9 +6,45 @@ function updateDisplay() {
 		current_timestamp = current_info.timestamp;
 	}
 
-	//// Update the timeline slider
+	// Update the timeline slider
+	const slider = document.getElementById("timeline");
 	slider.max = timeline.length;
 	slider.min = 1;
+
+	// Update the display options
+	var options = [{ fluent_data : "trust", display : "Trust fluents" }];
+	
+	current_info.fluents
+		.filter(fluent => fluent.type == "judgement" && fluent.args.length == 3)
+		// We need to remove duplicates, but can't use a set because strings aren't primitive
+		.reduce((acc, judgement) => {
+			// Construct the object using Prolog's complex term style
+			var claim = jsonToPrologTerm(judgement.args[2]);
+			var obj = { fluent_data : claim, display : `Judgements for ${claim}` };
+
+			// Is the object already there?
+			const already_present = acc.find(f => f.fluent_data == claim);
+			if (!already_present) acc.push(obj);
+			return acc;
+		}, options);
+	
+	// Turn the options into one string of html elements
+	const options_html = options.reduce((text, option) => {
+		// If this option is not already selected, don't give it the 'active' class
+		if (fluent_graph != option.fluent_data) return `${text}<button onclick="changeFluentMode(this, \'${option.fluent_data}\')">${option.display}</button>`;
+		// Otherwise, it's active
+		return `${text}<button class="active" onclick="changeFluentMode(this, \'${option.fluent_data}\')">${option.display}</button>`;
+	}, "");
+
+	// Displaying the options
+	const display_options_div = document.getElementById("display-options");
+	display_options_div.innerHTML = options_html;
+
+	// Do something if the currently selected fluent_graph mode isn't there
+	// Maybe display ALL possible fluents, just greyed out to indicate that they aren't in the current timestamp?
+
+
+	
 
 	// const eventsLabel = document.getElementById("events-label");
 	// eventsLabel.innerHTML = `Events at timestamp ${current_timestamp}`;
@@ -296,11 +332,11 @@ function submit(event) {
     event.preventDefault();
 }
 
-// Adding the event listener
+// Event listeners
+// Sending data to the server
 document.getElementById("update_eec").addEventListener("submit", submit);
-
-const slider = document.getElementById("timeline");
-slider.addEventListener("input", moveSlider);
+// Moving the timeline slider
+document.getElementById("timeline").addEventListener("input", moveSlider);
 
 // Object holding all of the calculated events and fluents for a given narrative and set of rules
 var timeline = undefined;
