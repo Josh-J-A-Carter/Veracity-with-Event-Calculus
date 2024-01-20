@@ -195,12 +195,8 @@ function updateGraph() {
 		var entry = display_information.find(node => node.id == current_id);
 		selected_node = current_id;
 
-		const selected_node_label = document.getElementById('selected-node-label');
 		const selected_node_text = document.getElementById('selected-node-text');
-	
-		if (graph_mode == 'trust') selected_node_label.innerHTML = `Judgements held by ${selected_node}`;
-		else selected_node_label.innerHTML = "Proof tree for selected judgement";
-	
+		
 		// Update the display area text
 		var entry = display_information.find(node => node.id == selected_node);
 		if (entry != undefined) selected_node_text.value = entry.text;
@@ -210,16 +206,12 @@ function updateGraph() {
 
 
 	// Update the display area label and text
-	const selected_node_label = document.getElementById('selected-node-label');
 	const selected_node_text = document.getElementById('selected-node-text');
 
 	if (selected_node == undefined) {
-		selected_node_label.innerHTML = "No node selected";
 		selected_node_text.value = "";
 		return;
 	}
-	else if (graph_mode == 'trust') selected_node_label.innerHTML = `Judgements held by ${selected_node}`;
-	else selected_node_label.innerHTML = "Proof tree for selected judgement";
 
 	// Update the display area text
 	var entry = display_information.find(node => node.id == selected_node);
@@ -361,6 +353,37 @@ function changeFluentMode(button, mode) {
 	// Redraw the graph accordingly
 	graph_mode = mode;
 	updateGraph();
+}
+
+
+function toggleMenu(label) {
+	// Get the menu which this label refers to, and toggle its state
+	const menu_id = label.htmlFor;
+	const menu = document.getElementById(menu_id);
+	const classList = Array.from(menu.classList);
+
+	if (classList.includes('opened')) menu.classList.remove('opened');
+	else menu.classList.add('opened');
+
+	// Recalculate the size that all the menus need to be;
+	// this depends on how many menus are open, and the viewport size.
+
+	total_height = window.innerHeight * 0.33;
+
+	// How many menus are open now?
+	var menus = Array.from(menu.parentNode.children);
+	
+	var num_open = menus.filter(menu => {
+		const classList = Array.from(menu.classList);
+		return classList.includes('opened');
+	}).length;
+
+	var individual_height = total_height / num_open;
+	var old_height = total_height / (num_open + 1);
+
+	const root = document.querySelector(':root');
+	root.style.setProperty('--menu-height', `${individual_height}px`);
+	root.style.setProperty('--old-menu-height', `${old_height}px`);
 }
 
 
