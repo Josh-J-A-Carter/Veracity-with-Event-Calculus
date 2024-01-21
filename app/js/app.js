@@ -11,7 +11,7 @@ function updateDisplay() {
 	slider.max = timeline.length;
 	slider.min = 1;
 
-	// Update the display options
+	// Update the graph options
 	// Always have the option of trust fluents, but also make it clear if there aren't any trust fluents in this current timestamp
 	const trust_fluent_found = current_info.fluents.find(fluent => fluent.type == "trust" && fluent.args.length == 2)
 	var options = [{ fluent_data : "trust", display : "Trust fluents", current : trust_fluent_found != undefined }];
@@ -32,7 +32,7 @@ function updateDisplay() {
 	
 	// Get the judgement/3 fluents from all other timestamps and add them in as well
 	// They should be selectable from any timestamp, but displayed as being not relevant to this timestamp
-	var t = timeline
+	timeline
 		// We've already processed this time stamp, so ignore them.
 		.filter(slice => slice.timestamp != current_timestamp)
 		// Turn each timestamp into a list of its fluents, specifically the judgement/3 predicates
@@ -68,43 +68,20 @@ function updateDisplay() {
 
 
 
+	//// Update the fluents / events for this timestamp
 
-	// const eventsLabel = document.getElementById("events-label");
-	// eventsLabel.innerHTML = `Events at timestamp ${current_timestamp}`;
-	// const eventsText = document.getElementById("events");
-	// eventsText.value = current_info.events
-	// 		.map(event => jsonToPrologTerm(event))
-	// 		.join("\n");
+	const events_text = document.getElementById("events-text");
+	events_text.value = current_info.events
+			.map(event => jsonToPrologTerm(event))
+			.join("\n");
 
-	// const fluentsLabel = document.getElementById("fluents-label");
-	// fluentsLabel.innerHTML = `Fluents just after timestamp ${current_timestamp}`;
-	// const fluentsText = document.getElementById("fluents");
-	// fluentsText.value = current_info.fluents
-	// 		.map(fluent => jsonToPrologTerm(fluent))
-	// 		.join("\n");
+	const fluents_text = document.getElementById("fluents-text");
+	fluents_text.value = current_info.fluents
+			.map(fluent => jsonToPrologTerm(fluent))
+			.join("\n");
 
-	// // Update textarea heights to fit text,
-	// // making sure that events + fluents is not bigger than the maximum area
-	// // by sharing the height by their ratios
-	// maxHeight = window.innerHeight * 0.32;
-	// minHeight = 15;
 
-	// var eventsHeight = eventsText.value.split(/\r|\r\n|\n/).length
-	// var fluentsHeight = fluentsText.value.split(/\r|\r\n|\n/).length
-
-	// sum = fluentsHeight + eventsHeight;
-	// if (sum == 0) sum = 1;
-	
-	// newFluentsHeight = Math.max((fluentsHeight / sum) * maxHeight, minHeight);
-	// newEventsHeight = Math.max((eventsHeight / sum) * maxHeight, minHeight);
-
-	// newFluentsHeight = Math.min(newFluentsHeight, maxHeight - minHeight);
-	// newEventsHeight = Math.min(newEventsHeight, maxHeight - minHeight);
-
-	// fluentsText.style.height = `${newFluentsHeight}px`;
-	// eventsText.style.height = `${newEventsHeight}px`;
-
-	// Update graph
+	//// Update the graph visualisation
 	updateGraph();
 }
 
@@ -278,14 +255,12 @@ function calculateTrustGraph() {
 			// Construct the display text for this node
 			const constructDisplayText = id => {
 
-				var display_text = judgements.reduce((text, judgement) => {
-					// This judgement doesn't relate to this node, so don't change the text
-					if (judgement.args[0] != id) return text;
-					// Otherwise, update the text by including this judgement (in Prolog style)
-					return `${text}\n${jsonToPrologTerm(judgement)}`;
-				}, "");
+				var text = judgements
+							.filter(judgement => judgement.args[0] == id)
+							.map(judgement => jsonToPrologTerm(judgement))
+							.join('\n');
 
-				return display_text;
+				return text;
 			};
 
 			const name_1 = fluent.args[0];
@@ -368,12 +343,16 @@ function toggleMenu(label) {
 	// Recalculate the size that all the menus need to be;
 	// this depends on how many menus are open, and the viewport size.
 
-	total_height = window.innerHeight * 0.33;
+	var total_height = window.innerHeight * 0.25;
 
 	// How many menus are open now?
-	var menus = Array.from(menu.parentNode.children);
+	var menu_wrappers = Array.from(menu.parentNode.parentNode.children);
 	
-	var num_open = menus.filter(menu => {
+	var num_open = menu_wrappers.filter(menu_wrapper => {
+		const menu = menu_wrapper.querySelector('.menu');
+
+		if (menu == undefined) return false;
+		
 		const classList = Array.from(menu.classList);
 		return classList.includes('opened');
 	}).length;

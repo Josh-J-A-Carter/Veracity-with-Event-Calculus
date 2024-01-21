@@ -75,23 +75,40 @@ html, body, #container {
     width: 99%;
     resize: none;
     height: auto;
-    /* padding: 0; */
-    /* margin: 0; */
+    overflow-y: hidden;
+    background-color: #fff;
+    color: black;
 }
 
 
+.menu-wrapper {
+    background-color: #eee;
+    padding: 2px;
+    border-radius: 2px;
+    border-color: #bbb;
+    border-width: 2px;
+    border-style: solid;
+    width: 100%;
+}
+
+.menu-wrapper label {
+    width: 100%;
+    display: block;
+}
+
 @keyframes menu-dropdown {
-    from { max-height: 0% }
-    to { max-height: var(--menu-height) }
+    from { max-height: 0px ; height: 0px }
+    to { max-height: var(--menu-height) ; height: var(--menu-height) }
 }
 
 @keyframes menu-hide {
-    from { max-height: var(--old-menu-height) }
-    to { max-height: 0% }
+    from { max-height: var(--old-menu-height) ; height: var(--old-menu-height)}
+    to { max-height: 0px ; height: 0px }
 }
 
 .menu {
-    max-height: 0%;
+    max-height: 0px;
+    height: 0px;
     overflow-y: hidden;
     animation-name: menu-hide;
     animation-duration: 0.2s;
@@ -102,6 +119,7 @@ html, body, #container {
     animation-duration: 0.2s;
     width: 100%;
     max-height: var(--menu-height);
+    height: var(--menu-height);
     overflow-y: auto;
 }
 
@@ -134,7 +152,7 @@ html, body, #container {
     grid-row: 2;
     border: 2px black solid;
     padding: 0;
-    height: 30vh;
+    height: 40vh;
 }
 
 #graph {
