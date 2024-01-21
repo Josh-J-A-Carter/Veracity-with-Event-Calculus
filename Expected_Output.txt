@@ -1,5 +1,7 @@
-Expected output in SWI Prolog for:
-?- [veracity, queries].
+Expected output for queries:
+?- [cached_dec, veracity]
+?- initialiseDEC, [queries].
+
 Printing entire narrative:
 
 Events that occurred at time 01/01/1970, 13:00
@@ -38,9 +40,9 @@ trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
 trust(customer,random_transportation)=0.4
 trust(customer,retailer)=0.95
-judgement(winery,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer2,"...",claim(bottle_1,"organic",1001))=0.95
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
 
 
 Events that occurred at time 01/01/1970, 13:18
@@ -54,9 +56,9 @@ trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
 trust(customer,random_transportation)=0.4
 trust(customer,retailer)=0.95
-judgement(winery,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer2,"...",claim(bottle_1,"organic",1001))=0.95
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
 
 
 Events that occurred at time 01/01/1970, 13:18
@@ -70,14 +72,14 @@ trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
 trust(customer,random_transportation)=0.4
 trust(customer,retailer)=0.95
-judgement(winery,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer2,"...",claim(bottle_1,"organic",1001))=0.95
-judgement(organic_transportation,"...",claim(bottle_1,no_change(1001),1101))=1.0
-judgement(customer,"...",claim(bottle_1,no_change(1001),1101))=0.97
-judgement(customer2,"...",claim(bottle_1,no_change(1001),1101))=0.873
-judgement(customer,"...",claim(bottle_1,"organic",1101))=0.97
-judgement(customer2,"...",claim(bottle_1,"organic",1101))=0.8293499999999999
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
+judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0
+judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
+judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.8293499999999999
 
 
 Events that occurred at time 01/01/1970, 13:20
@@ -91,14 +93,14 @@ trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
 trust(customer,random_transportation)=0.4
 trust(customer,retailer)=0.95
-judgement(winery,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer2,"...",claim(bottle_1,"organic",1001))=0.95
-judgement(organic_transportation,"...",claim(bottle_1,no_change(1001),1101))=1.0
-judgement(customer,"...",claim(bottle_1,no_change(1001),1101))=0.97
-judgement(customer2,"...",claim(bottle_1,no_change(1001),1101))=0.873
-judgement(customer,"...",claim(bottle_1,"organic",1101))=0.97
-judgement(customer2,"...",claim(bottle_1,"organic",1101))=0.8293499999999999
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
+judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0
+judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
+judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.8293499999999999
 
 
 Events that occurred at time 01/01/1970, 13:20
@@ -112,16 +114,18 @@ trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
 trust(customer,random_transportation)=0.4
 trust(customer,retailer)=0.95
-judgement(winery,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer,"...",claim(bottle_1,"organic",1001))=1.0
-judgement(customer2,"...",claim(bottle_1,"organic",1001))=0.95
-judgement(organic_transportation,"...",claim(bottle_1,no_change(1001),1101))=1.0
-judgement(customer,"...",claim(bottle_1,no_change(1001),1101))=0.97
-judgement(customer2,"...",claim(bottle_1,no_change(1001),1101))=0.873
-judgement(customer,"...",claim(bottle_1,"organic",1101))=0.97
-judgement(customer2,"...",claim(bottle_1,"organic",1101))=0.8293499999999999
-judgement(retailer,"...",claim(bottle_1,no_change(1101),1201))=1.0
-judgement(customer,"...",claim(bottle_1,no_change(1101),1201))=0.95
-judgement(customer2,"...",claim(bottle_1,no_change(1101),1201))=0.855
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
+judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0
+judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
+judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.8293499999999999
+judgement(retailer,'[...]',claim(bottle_1,no_change(1101),1201))=1.0
+judgement(customer,'[...]',claim(bottle_1,no_change(1101),1201))=0.95
+judgement(customer2,'[...]',claim(bottle_1,no_change(1101),1201))=0.855
+judgement(customer,'[...]',claim(bottle_1,"organic",1201))=0.9215
+judgement(customer2,'[...]',claim(bottle_1,"organic",1201))=0.7090942499999999
 
 true.

@@ -15,7 +15,9 @@ initiates(verify(Entity, Evidence, Claim, Confidence), judgement(Entity, [Eviden
 
 % If (O is verified as organic at T1) and (O is verified as not having changed since T1),
 % then (O is verified as organic at T2) - provided T1 < T2
-implies([claim(O, "organic", T1), claim(O, no_change(T1), T2)] ==> claim(O, "organic", T2), _T) :- T1 < T2.
+% implies([claim(O, "organic", T1), claim(O, no_change(T1), T2)] ==> claim(O, "organic", T2), _T) :- T1 < T2.
+initially(judgement(customer, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
+initially(judgement(customer2, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
 
 initiates(change_trust(A, B, Trust), trust(A, B)=Trust, _T).
 

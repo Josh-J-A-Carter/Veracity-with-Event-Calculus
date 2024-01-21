@@ -8,7 +8,6 @@
 :- multifile happens/2.
 :- multifile holdsIf/2.
 :- multifile causes/4.
-:- multifile implies/3.
 :- dynamic initially/1.
 :- dynamic initiates/3.
 :- dynamic holdsAtCached/2.
@@ -18,7 +17,6 @@
 :- dynamic narrative/1.
 :- dynamic optimistic/0.                % Should not be altered during computation of the narrative!
 :- discontiguous initially/1.
-:- discontiguous implies/1.
 :- discontiguous initiates/3.
 :- discontiguous terminates/3.
 :- discontiguous releases/3.
@@ -116,21 +114,45 @@ cache_holdsAt(T) :-
 
 %%% Derived judgements; i.e. judgements from implicative judgements
 
-satisfy_constraints(Entity, Conditions, Body, T) :-
+% Satisfy conditions = all the judgements and constraints
+satisfy_conditions(Entity, Judgements, Constraints, T) :-
     % Bind the variables inside of the conditions with actual values
-    bind_conditions(Entity, Conditions, T),
+    bind_judgements(Entity, Judgements, T),
     % Check constraints from the implication's body
-    call(Body).
+    satisfy_constraints(Constraints).
 
-bind_conditions(_Entity, [], _T).
-bind_conditions(Entity, [Condition | Conditions], T) :-
-    holdsAtCached(Condition, T),
-    bind_conditions(Entity, Conditions, T).
+% Satisfy constraints; all the requirements which aren't directly part of judgements
+% e.g. requiring that timestamps between claims have certain properties.
+satisfy_constraints([]).
+satisfy_constraints([Constraint | Constraints]) :-
+    Constraint =.. [constraint | Clauses],
+    satisfy_clauses(Clauses),
+    satisfy_constraints(Constraints).
+
+% Satisfy each clause inside of a given constraint; there could be multiple.
+satisfy_clauses([]).
+satisfy_clauses([Clause | Clauses]) :-
+    call(Clause),
+    satisfy_clauses(Clauses).
+
+bind_judgements(_Entity, [], _T).
+bind_judgements(Entity, [Judgement | Judgements], T) :-
+    holdsAtCached(Judgement, T),
+    bind_judgements(Entity, Judgements, T).
 
 % There is only one claim left; we can't build a tuple with one element
 claims_to_judgements(_Entity, [], [], Acc, Acc) :- !.
 claims_to_judgements(Entity, [Claim | Claims], [judgement(Entity, _Evidence, Claim)=Confidence | Judgements], Acc, Total) :-
     !, claims_to_judgements(Entity, Claims, Judgements, Acc * Confidence, Total).
+
+% No more conditions to separate; return the two resulting lists.
+separate_conditions([], [], []) :- !.
+% Each condition is either a claim or a constraint
+separate_conditions([Condition | Conditions], Claims, [Condition | Constraints]) :-
+    functor(Condition, constraint, _Num_Args), !,
+    separate_conditions(Conditions, Claims, Constraints).
+separate_conditions([Condition | Conditions], [Condition | Claims], Constraints) :-
+    !, separate_conditions(Conditions, Claims, Constraints).
 
 % Go to each Entity whose (base) judgements have been changed at T
 % Try to derive new judgements for Entity, using implication rules
@@ -145,12 +167,15 @@ derive_once(Entity, T, Again) :-
     % Check every implication that is relevant to this entity
     forall(
         (
-            clause(implies(Conditions ==> Consequence, T), Body),
+            holdsAt(judgement(Entity, _Evidence, Conditions ==> Consequence)=Implicative_Confidence, T),
+            % Separate 'Conditions' into 'Claims' and 'Constraints'
+            % Claims will need to be unified with judgements, and then Constraints are applied
+            separate_conditions(Conditions, Claims, Constraints),
             % Turn the claims into unbound judgements
-            claims_to_judgements(Entity, Conditions, Judgements, 1.0, Total_Confidence),
+            claims_to_judgements(Entity, Claims, Judgements, Implicative_Confidence, Total_Confidence),
             % Try to bind the judgements to actual variables based on the Entity's existing judgements
             % and based on the Body clause (which needs to be check *after* instantiation)
-            satisfy_constraints(Entity, Judgements, Body, T)
+            satisfy_conditions(Entity, Judgements, Constraints, T)
         ),
         (
             % % Attempt to satisfy / initialise the judgements
