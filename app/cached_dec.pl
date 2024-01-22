@@ -167,7 +167,8 @@ derive_once(Entity, T, Again) :-
     % Check every implication that is relevant to this entity
     forall(
         (
-            holdsAt(judgement(Entity, _Evidence, Conditions ==> Consequence)=Implicative_Confidence, T),
+            holdsAt(Implicative_Judgement, T),
+            Implicative_Judgement = (judgement(Entity, _Evidence, Conditions ==> Consequence)=Implicative_Confidence),
             % Separate 'Conditions' into 'Claims' and 'Constraints'
             % Claims will need to be unified with judgements, and then Constraints are applied
             separate_conditions(Conditions, Claims, Constraints),
@@ -179,7 +180,8 @@ derive_once(Entity, T, Again) :-
         ),
         (
             % % Attempt to satisfy / initialise the judgements
-            (Confidence is Total_Confidence, Resulting_Judgement = (judgement(Entity, Judgements, Consequence)=Confidence),
+            (Confidence is Total_Confidence, Evidence = [Implicative_Judgement | Judgements], 
+            Resulting_Judgement = (judgement(Entity, Evidence, Consequence)=Confidence),
             \+ holdsAtCached(Resulting_Judgement, T))
                 -> (assert(holdsAtCached(Resulting_Judgement, T)),
                     Again = true)
@@ -227,12 +229,12 @@ update_judgements(Affected_Entities, T) :-
         judgement(Judge, Evidence, Claim)=Confidence,
         (happens(E, T_Previous),
             (
-                initiates(E, judgement(Judge, Evidence, Claim)=Confidence, T_Previous)
-                ; terminates(E, judgement(Judge, Evidence, Claim)=Confidence, T_Previous)
-                ; releases(E, judgement(Judge, Evidence, Claim)=Confidence, T_Previous)
-            ),
+                (initiates(E, judgement(Judge, Evidence, Claim)=Confidence, T_Previous), \+ var(Confidence))
+                ; terminates(E, judgement(Judge, Evidence, Claim)=_, T_Previous)
+                ; releases(E, judgement(Judge, Evidence, Claim)=_, T_Previous)
+            )
             % We need Confidence to be instantiated
-            \+ var(Confidence)),
+            ),
         List_1
     ),
     % If Trustor's trust in Trustee changes, we need to recompute all of the ATOMIC judgements that Trustee believes
@@ -251,7 +253,7 @@ update_judgements(Affected_Entities, T) :-
         \+ var(Confidence)),
         List_2
     ),
-    % initially/1 predicates defining ATOMIC judgement/3 fluents
+    % initially/1 predicates defining judgement/3 fluents
     ((T_Previous = 0)
         -> (List_1 = [], List_2 = [],
             findall(
@@ -316,6 +318,8 @@ update_judgement(Judgement, Affected_Entities, T) :-
     % This is inefficient but simple and it ensures correctness
     retract_dependent_judgements(Judgement, Removed_Entities, T),
     Judgement = (judgement(Judge, Evidence, Claim)=Confidence),
+    % If Confidence is not bound, assume it's zero
+    (var(Confidence) -> Confidence is 0 ; true),
     ((Confidence > 0, Confidence =< 1)
         ->  (% Dijkstra's algorithm - note that we need confidence as a logarithm,
             % otherwise, with multiplication, we would have a diminishing path cost

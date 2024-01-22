@@ -13,8 +13,11 @@ initially(trust(customer, retailer)=0.95).
 % To supply complex Evidence involving multiple judgements, use 'implies'
 initiates(verify(Entity, Evidence, Claim, Confidence), judgement(Entity, [Evidence], Claim)=Confidence, _T).
 
+terminates(disprove(Entity, Claim), judgement(Entity, _Evidence, Claim)=_Confidence, _T).
+
 % If (O is verified as organic at T1) and (O is verified as not having changed since T1),
 % then (O is verified as organic at T2) - provided T1 < T2
+% implies([claim(O, "organic", T1), claim(O, no_change(T1), T2)] ==> claim(O, "organic", T2), _T) :- T1 < T2.
 initially(judgement(customer, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
 initially(judgement(customer2, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
 
@@ -38,6 +41,8 @@ happens(handle(retailer, bottle_1), 1200).
 % % Claims that the bottle was not changed in an inorganic way
 happens(verify(retailer, "audit", claim(bottle_1, no_change(1101), 1201), 1.0), 1201).
 
+
+happens(disprove(customer, [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2)), 1202).
 
 % % What fluents hold at T=1500?
 happens(query, 1500).
