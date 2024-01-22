@@ -4,9 +4,7 @@ function updateDisplay() {
 	if (current_info == undefined) {
 		current_info = timeline[0];
 		current_timestamp = current_info.timestamp;
-	}
-
-	console.log(current_info);
+	}	
 
 	// Update the timeline slider
 	const slider = document.getElementById("timeline");
@@ -212,7 +210,7 @@ function calculateJudgementGraph() {
 		.filter(fluent => fluent.type == "judgement" && fluent.args.length == 3 && jsonToPrologTerm(fluent.args[2]) == graph_mode)
 		.forEach(fluent => {
 			const name = fluent.args[0];
-			const display_text = ""
+			const display_text = buildProofTree(fluent);
 			graph.add({ data : { id : name }});
 			display_information.push({
 				id : name,
@@ -295,9 +293,53 @@ function calculateTrustGraph() {
 	return { graph, display_information };
 }
 
+function buildProofTree(json_judgement) {
+	const { pre_text, conclusion, atomic } = proofTreeRecurse(json_judgement);
+
+	if (atomic) return conclusion;
+
+	return pre_text;
+}
+
+function proofTreeRecurse(json_judgement) {
+	// Base case: atom
+	// We don't need to prove atomic pieces of evidence any further.
+	if (json_judgement.type == 'trust') return { pre_text: undefined, conclusion : jsonToPrologTerm(json_judgement), atomic : false }
+	if (json_judgement.args == undefined) return { pre_text : undefined, conclusion : json_judgement, atomic : true };
+
+	var agent = jsonToPrologTerm(json_judgement.args[0]);
+	var evidence_objects = json_judgement.args[1].map(e => proofTreeRecurse(e));
+	var claim = jsonToPrologTerm(json_judgement.args[2]);
+	var confidence = (Math.round(json_judgement.value * 100) / 100).toFixed(3);
+
+	// Including the proofs for the evidence that this current judgement depends on
+	// Only relevant when the pieces of evidence are not atomic
+	var previous_proofs = evidence_objects
+					.filter(e => e.pre_text != undefined)
+					.map(e => e.pre_text)
+					.reduce((text, e) => `${text}${e}\n\n`, '');
+	
+	// Using the conclusions of each bit of evidence which this judgement depends on,
+	// we then format this together in veracity logic style
+	var evidence = evidence_objects
+					.map(e => e.conclusion)
+					.join(', ');
+	
+	var atomic_evidence = evidence_objects.find(e => e.atomic == true);
+
+	if (atomic_evidence) var conclusion = `(${evidence})(${agent})(${confidence}) ∈ ${claim}`;
+
+	else {
+		var pre_text = `${previous_proofs}${evidence} ⊢ (EVIDENCE)(${agent})(${confidence}) ∈ ${claim}`;
+		var conclusion = `(EVIDENCE)(${agent})(${confidence}) ∈ ${claim}`;
+	}
+
+	return { pre_text : pre_text, conclusion : conclusion, atomic : false };
+}
+
 function jsonToPrologTerm(json) {
 	// List of json terms (base case)
-	//// if (json instanceof Array) return json.map(element => jsonToPrologTerm(element));
+	// if (json instanceof Array) return json.map(element => jsonToPrologTerm(element));
 	// Printing all of the 'evidence' for a judgement makes it impossible to read!
 	// Instead, we note that it has been cut down - the proof tree can be found elsewhere
 	if (json instanceof Array) return "(...)";
@@ -306,13 +348,13 @@ function jsonToPrologTerm(json) {
 	if (json.args == undefined) return json;
 	
 	// Complex terms (recursive case)
-	jsonifiedArguments = json.args.map(arg => jsonToPrologTerm(arg));
+	jsonified_arguments = json.args.map(arg => jsonToPrologTerm(arg));
 	functor = json.type;
 	
-	if (json.value == undefined) return `${functor}(${jsonifiedArguments})`;
+	if (json.value == undefined) return `${functor}(${jsonified_arguments})`;
 
-	value = (Math.round(json.value * 100) / 100).toFixed(2);
-	return `${functor}(${jsonifiedArguments})=${value}`;
+	value = (Math.round(json.value * 100) / 100).toFixed(3);
+	return `${functor}(${jsonified_arguments})=${value}`;
 }
 
 // Callback function for when a button is clicked in order to change

@@ -326,15 +326,15 @@ update_judgement(Judgement, Affected_Entities, T) :-
             % and this leads to sub-optimal path choices (or non-termination in the worst case)
             list_to_heap([], Heap),
             mode(Sign), Log_Confidence is Sign * log(Confidence),
-            propagate_judgement(node(Judge, Log_Confidence), judgement(Judge, Evidence, Claim)=Confidence, Added_Entities, T, Heap),
+            propagate_judgement(node(Judge, [], Log_Confidence), judgement(Judge, Evidence, Claim)=Confidence, Added_Entities, T, Heap),
             append(Removed_Entities, Added_Entities, Unsorted_Entities),
             sort(Unsorted_Entities, Affected_Entities))
         % Otherwise, Confidence is zero (or an inappropriate value), so the judgement is retracted entirely
         ;   sort(Removed_Entities, Affected_Entities)).
 
 propagate_judgement(Current_Node, Original_Judgement, [Entity | Added_Entities], T, Heap_0) :-
-    % Unwrap the node/2 and judgement/3 structures
-    Current_Node = node(Entity, Log_Confidence),
+    % Unwrap the node/3 and judgement/3 structures
+    Current_Node = node(Entity, Trust_Path, Log_Confidence),
     Original_Judgement = (judgement(Original_Judge, _Original_Evidence, Claim)=_Original_Confidence),
     % Get confidence from Log_Confidence
     mode(Sign), Confidence is exp(Sign * Log_Confidence),
@@ -345,10 +345,12 @@ propagate_judgement(Current_Node, Original_Judgement, [Entity | Added_Entities],
         % Note that this is not using transitive dependencies; we want each
         % new judgement to DIRECTLY depend on Original_Judgement (instead of the previous node's judgement)
         % because this makes it less computationally expensive to detect provenance
-        ; assert(holdsAtCached(judgement(Entity, [Original_Judgement], Claim)=Confidence, T))),
+        ; assert(holdsAtCached(judgement(Entity, [Original_Judgement | Trust_Path], Claim)=Confidence, T))),
     % Find the neighbours' path costs
     findall(
-        (Neighbour, Cost),
+        % Note that we want to know how we got to this neighbour through the trust graph,
+        % thus we include a list of trust/2 fluents which are built up as we explore the network
+        (Neighbour, [trust(Neighbour, Entity)=Trust | Trust_Path], Cost),
         (
             holdsAtCached(trust(Neighbour, Entity)=Trust, T),
             % Don't add it if we already know the best path to that Neighbour
@@ -371,23 +373,23 @@ propagate_judgement(Current_Node, Original_Judgement, [Entity | Added_Entities],
 add_list_to_heap(Heap, [], Heap).
 % Recursive case; the list isn't empty, add to the heap.
 add_list_to_heap(Heap_0, [Node | Tail], Heap_1) :-
-    Node = (Entity, Log_Confidence),
-    % Add to heap, with Log_Confidence as the priority, and Entity as the key
-    add_to_heap(Heap_0, Log_Confidence, Entity, Heap_2),
+    Node = (Entity, Trust_Path, Log_Confidence),
+    % Add to heap, with Log_Confidence as the priority, and Entity (and the trust path) as the key
+    add_to_heap(Heap_0, Log_Confidence, (Entity, Trust_Path), Heap_2),
     add_list_to_heap(Heap_2, Tail, Heap_1).
 
 % Go through the heap to find the next min cost path to a node that has not
 % already been found and assigned a minimum/maximum cost.
 % Fails if it does not find a new node in the heap (i.e. the heap holds no unseen nodes).
 get_next_node(Heap_0, Next_Node, Original_Judgement, T, Heap_1) :-
-    % Get the next node. If the heap is empty, this entire predicate fails.
-    get_from_heap(Heap_0, Log_Confidence, Entity, Heap_2)
+    % Get the next node. If the heap is empty, this entire predicate fails, and the algorithm ends.
+    get_from_heap(Heap_0, Log_Confidence, (Entity, Trust_Path), Heap_2)
     -> (Original_Judgement = (judgement(_Original_Judge, _Original_Evidence, Claim)=_Original_Confidence),
         % Have we already found the best cost path to Entity?
         % NOTE: Again, we are assuming that there are not multiple sets of evidence for the same claim
         ((\+ holdsAtCached(judgement(Entity, _Existing_Evidence, Claim)=_Existing_Confidence, T))
             % If we haven't seen it, then stop recursing as we have found the next node to expand.
-            -> (Heap_1 = Heap_2, Next_Node = node(Entity, Log_Confidence))
+            -> (Heap_1 = Heap_2, Next_Node = node(Entity, Trust_Path, Log_Confidence))
             % Otherwise, we need to keep looking through the heap
             ; get_next_node(Heap_2, Next_Node, Original_Judgement, T, Heap_1)))
     % The heap is empty; there is no "next node" to expand.

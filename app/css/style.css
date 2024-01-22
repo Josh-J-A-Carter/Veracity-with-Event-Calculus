@@ -74,7 +74,8 @@ html, body, #container {
 #info textarea {
     width: 99%;
     resize: none;
-    height: auto;
+    max-height: var(--menu-height);
+    height: var(--menu-height);
     overflow-y: scroll;
     background-color: #fff;
     color: black;

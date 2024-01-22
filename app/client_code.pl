@@ -5,7 +5,6 @@ initially(trust(customer, winery)=1.0).
 initially(trust(customer2, customer)=0.9).
 initially(trust(customer2, winery)=0.95).
 initially(trust(customer, organic_transportation)=0.97).
-initially(trust(organic_transportation, random_transportation)=0.2).
 initially(trust(customer, retailer)=0.95).
 
 % If Entity verifies a Claim, it creates a judgement that some Evidence verifies the Claim
@@ -17,7 +16,6 @@ terminates(disprove(Entity, Claim), judgement(Entity, _Evidence, Claim)=_Confide
 
 % If (O is verified as organic at T1) and (O is verified as not having changed since T1),
 % then (O is verified as organic at T2) - provided T1 < T2
-% implies([claim(O, "organic", T1), claim(O, no_change(T1), T2)] ==> claim(O, "organic", T2), _T) :- T1 < T2.
 initially(judgement(customer, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
 initially(judgement(customer2, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
 
