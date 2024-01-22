@@ -115,10 +115,10 @@ html, body, #container {
 }
 
 .menu-wrapper {
-    background-color: #ddd;
+    background-color: #e5e5e5;
     padding: 2px;
     border-radius: 2px;
-    border-color: #bbb;
+    border-color: #bfbfbf;
     border-width: 2px;
     border-style: solid;
     width: 100%;
@@ -162,7 +162,7 @@ html, body, #container {
 }
 
 .menu button {
-    background-color: #eee;
+    background-color: #f5f5f5;
     color: black;
     display: block;
     width: 100%;
@@ -173,15 +173,15 @@ html, body, #container {
 }
 
 .menu button:hover:not(.active) {
-    background-color: #ccc;
+    background-color: #e0e0e0;
 }
   
 .menu button.not-current:not(.active) {
-    background-color: #eed6d6;
+    background-color: #efdfdf;
 }
 
 .menu button.not-current:hover:not(.active) {
-    background-color: #dec6c6;
+    background-color: #dfcfcf;
 }
   
 .menu button.active {

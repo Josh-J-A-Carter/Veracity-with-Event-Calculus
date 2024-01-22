@@ -140,6 +140,12 @@ function updateGraph() {
 			}
 		},
 		{
+			selector: 'node.highlight',
+			style: {
+				'background-color': '#04AA6D',
+			}
+		},
+		{
 			selector: 'edge',
 			  style: {
 				'width': 2,
@@ -149,6 +155,13 @@ function updateGraph() {
 				'curve-style': 'bezier',
 				// 'label': 'data(weight)'
 			  }
+		},
+		{
+			selector: 'edge.highlight',
+			style: {
+				'target-arrow-color': '#04AA6D',
+				'line-color': '#04AA6D'
+			}
 		}],
 		layout: { 
 			name: 'klay',
@@ -161,13 +174,30 @@ function updateGraph() {
 		}
 	});
 
+	// Set all of the elements that are labelled as highlighted to the 'highlight' class
+	cy.elements('[highlight]')
+		.addClass('highlight');
+
+	// Make sure zooming is controlled and consistent between timestamps
+	// i.e. swapping to another timestamp shouldn't reset the zoom level
 	cy.minZoom(0.5);
 	cy.maxZoom(2);
+	cy.zoom(current_zoom);
 
-	// Ensure that the display text and hover effects are put into place
-	cy.on("mouseover", "node", event => {
-		event.target.addClass("hover");
+	cy.on('zoom', _ => {
+		current_zoom = cy.zoom();
+	})
 
+	// Do the same for screen position / pan
+	if (screen_position == undefined) screen_position = cy.pan();
+	cy.pan(screen_position);
+
+	cy.on('pan', _ => {
+		screen_position = cy.pan();
+	})
+
+	// Events for selecting a node, or hovering over it.
+	cy.on("tap", "node", event => {
 		var current_id = event.target.id();
 		var entry = display_information.find(node => node.id == current_id);
 		selected_node = current_id;
@@ -179,6 +209,8 @@ function updateGraph() {
 		if (entry != undefined) selected_node_text.innerHTML = entry.text;
 		else selected_node_text.innerHTML = "";
 	});
+
+	cy.on("mouseover", "node", event => event.target.addClass("hover"));
 	cy.on("mouseout", "node.hover", event => event.target.removeClass("hover"));
 
 
@@ -211,7 +243,7 @@ function calculateJudgementGraph() {
 		.forEach(fluent => {
 			const name = fluent.args[0];
 			const display_text = buildProofTree(fluent);
-			graph.add({ data : { id : name }});
+			graph.add({ data : { id : name, highlight : true }});
 			display_information.push({
 				id : name,
 				text : display_text
@@ -229,11 +261,48 @@ function calculateJudgementGraph() {
 						id : `trust(${trustor}, ${trustee})`,
 						source : trustor,
 						target : trustee,
-						weight : fluent.value
+						highlight : true
 					}
 				})
 			});
 		});
+
+	// Add the other edges and nodes from the trust graph, but don't highlight them
+	trust.forEach(fluent => {
+		var list_graph = [...graph];
+
+		// If each node isn't already present, then add it
+		var trustor = fluent.args[0];
+		var found_trustor = list_graph.find(element => element.id == trustor);
+		if (!found_trustor) {
+			graph.add({ data : { id : trustor }});
+			display_information.push({
+				id : trustor,
+				text : ""
+			});
+		}
+
+		var trustee = fluent.args[1];
+		var found_trustee = list_graph.find(element => element.id == trustee);
+		if (!found_trustee) {
+			graph.add({ data : { id : trustee }});
+			display_information.push({
+				id : trustee,
+				text : ""
+			});
+		}
+
+		// Add the edge between them, unless either of the nodes are already in the graph
+		if (found_trustee | found_trustor) return;
+
+		graph.add({
+			data : { 
+				id : `trust(${trustor}, ${trustee})`,
+				source : trustor,
+				target : trustee
+			}
+		})
+	});
 	
 	return { graph, display_information };
 }
@@ -265,7 +334,7 @@ function calculateTrustGraph() {
 
 			const name_1 = fluent.args[0];
 			const display_text_1 = constructDisplayText(name_1);
-			graph.add({ data : { id : name_1 }});
+			graph.add({ data : { id : name_1, highlight : true }});
 			display_information.push({
 				id : name_1,
 				text : display_text_1
@@ -273,7 +342,7 @@ function calculateTrustGraph() {
 
 			const name_2 = fluent.args[1];
 			const display_text_2 = constructDisplayText(name_2);
-			graph.add({ data : { id : name_2 }});
+			graph.add({ data : { id : name_2, highlight : true }});
 			display_information.push({
 				id : name_2,
 				text : display_text_2
@@ -285,7 +354,8 @@ function calculateTrustGraph() {
 					id : `trust(${name_1}, ${name_2})`,
 					source : name_1,
 					target : name_2,
-					weight : fluent.value
+					weight : fluent.value,
+					highlight : true
 				}
 			})
 		});
@@ -332,6 +402,7 @@ function proofTreeRecurse(json_judgement) {
 					.reduce((text, e) => `${text}${e}<br><div class="skip-line"></div>`, '');
 	
 	// Collect the atomic witnesses which combine to this current judgement, and display them as text
+	// Make sure that there are no duplicate atomic witnesses
 	var witnesses = evidence_objects
 						.map(e => e.atomic_evidence)
 						.reduce((acc, list) => acc.concat(list), [])
@@ -397,7 +468,7 @@ function jsonToPrologTerm(json, bindings = {}) {
 		if (conditions.length > 1) conditions_text = `(${conditions_text})`;
 	
 		var conclusion = jsonToPrologTerm(json.args[1], bindings);
-		return 	`${conditions_text}⇒${conclusion}`;
+		return 	`${conditions_text} ⇒ ${conclusion}`;
 	}
 	
 	// Complex terms (recursive case)
@@ -511,3 +582,7 @@ var graph_mode = 'trust';
 // The node in the graph that is currently selected
 // If a node is selected, its information (e.g. judgements) are displayed
 var selected_node = undefined;
+
+// Current zoom level and screen position
+var current_zoom = 1;
+var screen_position = undefined;
