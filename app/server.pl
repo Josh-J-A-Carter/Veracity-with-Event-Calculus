@@ -59,6 +59,8 @@ construct_json_narrative([Current | Remaining]) :-
         Remaining = []
     ).
 
+% Deal with variables separately to avoid infinite recursion
+jsonify(Variable, Atom) :- var(Variable), term_to_atom(Variable, Atom), !.
 
 % Parse compound terms into dictionaries so that they can be turned into JSON
 % First, treat the |/2 functor specially so that lists are properly processed
@@ -66,6 +68,12 @@ jsonify([Head | Tail], [JsonHead | JsonTail]) :-
     jsonify(Head, JsonHead),
     jsonify(Tail, JsonTail), !.
 jsonify([], []) :- !.
+
+% Treat implications separately
+jsonify(Conditions ==> Consequence, JsonImplication) :- 
+    jsonify(Conditions, JsonConditions), jsonify(Consequence, JsonConsequence),
+    JsonImplication = _{type : implies, args : [JsonConditions, JsonConsequence]}, !.
+
 jsonify(In, Out) :-
     % Check for the =/2 functor, since it is used with multi-valued fluents
     (
