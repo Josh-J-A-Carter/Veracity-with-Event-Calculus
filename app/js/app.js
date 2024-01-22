@@ -71,14 +71,14 @@ function updateDisplay() {
 	//// Update the fluents / events for this timestamp
 
 	const events_text = document.getElementById("events-text");
-	events_text.value = current_info.events
+	events_text.innerHTML = current_info.events
 			.map(event => jsonToPrologTerm(event))
-			.join("\n");
+			.join("<br>");
 
 	const fluents_text = document.getElementById("fluents-text");
-	fluents_text.value = current_info.fluents
+	fluents_text.innerHTML = current_info.fluents
 			.map(fluent => jsonToPrologTerm(fluent))
-			.join("\n");
+			.join("<br>");
 
 
 	//// Update the graph visualisation
@@ -176,8 +176,8 @@ function updateGraph() {
 		
 		// Update the display area text
 		var entry = display_information.find(node => node.id == selected_node);
-		if (entry != undefined) selected_node_text.value = entry.text;
-		else selected_node_text.value = "";
+		if (entry != undefined) selected_node_text.innerHTML = entry.text;
+		else selected_node_text.innerHTML = "";
 	});
 	cy.on("mouseout", "node.hover", event => event.target.removeClass("hover"));
 
@@ -186,14 +186,14 @@ function updateGraph() {
 	const selected_node_text = document.getElementById('selected-node-text');
 
 	if (selected_node == undefined) {
-		selected_node_text.value = "";
+		selected_node_text.innerHTML = "";
 		return;
 	}
 
 	// Update the display area text
 	var entry = display_information.find(node => node.id == selected_node);
-	if (entry != undefined) selected_node_text.value = entry.text;
-	else selected_node_text.value = "";
+	if (entry != undefined) selected_node_text.innerHTML = entry.text;
+	else selected_node_text.innerHTML = "";
 }
 
 function calculateJudgementGraph() {
@@ -258,7 +258,7 @@ function calculateTrustGraph() {
 				var text = judgements
 							.filter(judgement => judgement.args[0] == id)
 							.map(judgement => jsonToPrologTerm(judgement))
-							.join('\n');
+							.join('<br>');
 
 				return text;
 			};
@@ -294,9 +294,9 @@ function calculateTrustGraph() {
 }
 
 function buildProofTree(json_judgement) {
-	const { pre_text, conclusion, atomic } = proofTreeRecurse(json_judgement);
+	const { pre_text, conclusion } = proofTreeRecurse(json_judgement);
 
-	if (atomic) return conclusion;
+	if (pre_text == undefined) return conclusion;
 
 	return pre_text;
 }
@@ -304,20 +304,42 @@ function buildProofTree(json_judgement) {
 function proofTreeRecurse(json_judgement) {
 	// Base case: atom
 	// We don't need to prove atomic pieces of evidence any further.
-	if (json_judgement.type == 'trust') return { pre_text: undefined, conclusion : jsonToPrologTerm(json_judgement), atomic : false }
-	if (json_judgement.args == undefined) return { pre_text : undefined, conclusion : json_judgement, atomic : true };
+
+	if (json_judgement.type == 'trust') return { 
+		pre_text: undefined, 
+		conclusion : jsonToPrologTerm(json_judgement),
+		atomic : false,
+		atomic_evidence : []
+	}
+
+	if (json_judgement.args == undefined) return { 
+		pre_text : undefined, 
+		conclusion : json_judgement,
+		atomic : true,
+		atomic_evidence : [json_judgement]
+	};
 
 	var agent = jsonToPrologTerm(json_judgement.args[0]);
 	var evidence_objects = json_judgement.args[1].map(e => proofTreeRecurse(e));
 	var claim = jsonToPrologTerm(json_judgement.args[2]);
-	var confidence = (Math.round(json_judgement.value * 100) / 100).toFixed(3);
+	var confidence = (Math.round(json_judgement.value * 100) / 100).toFixed(2);
 
 	// Including the proofs for the evidence that this current judgement depends on
 	// Only relevant when the pieces of evidence are not atomic
 	var previous_proofs = evidence_objects
 					.filter(e => e.pre_text != undefined)
 					.map(e => e.pre_text)
-					.reduce((text, e) => `${text}${e}\n\n`, '');
+					.reduce((text, e) => `${text}${e}<br><div class="skip-line"></div>`, '');
+	
+	// Collect the atomic witnesses which combine to this current judgement, and display them as text
+	var witnesses = evidence_objects
+						.map(e => e.atomic_evidence)
+						.reduce((acc, list) => acc.concat(list), [])
+						// .filter(e => e != 'true' && e != 'false');
+
+	var no_duplicates = new Set(witnesses);
+	var witness_text = [...no_duplicates].join(',');
+	if (witnesses.length > 1) witness_text = `(${witness_text})`;
 	
 	// Using the conclusions of each bit of evidence which this judgement depends on,
 	// we then format this together in veracity logic style
@@ -325,35 +347,66 @@ function proofTreeRecurse(json_judgement) {
 					.map(e => e.conclusion)
 					.join(', ');
 	
-	var atomic_evidence = evidence_objects.find(e => e.atomic == true);
+	var scripts = `<div class="scripts"><span class="super">${agent}</span><span class="sub">${confidence}</span></div>`;
 
-	if (atomic_evidence) var conclusion = `(${evidence})(${agent})(${confidence}) ∈ ${claim}`;
+	var atomic_evidence = evidence_objects.find(e => e.atomic == true);
+	if (atomic_evidence) var conclusion = `${witness_text}${scripts} ∈ ${claim}`;
 
 	else {
-		var pre_text = `${previous_proofs}${evidence} ⊢ (EVIDENCE)(${agent})(${confidence}) ∈ ${claim}`;
-		var conclusion = `(EVIDENCE)(${agent})(${confidence}) ∈ ${claim}`;
+		var pre_text = `${previous_proofs}${evidence} ⊢ ${witness_text}${scripts} ∈ ${claim}`;
+		var conclusion = `${witness_text}${scripts} ∈ ${claim}`;
 	}
 
-	return { pre_text : pre_text, conclusion : conclusion, atomic : false };
+	return { 
+		pre_text : pre_text,
+		conclusion : conclusion,
+		atomic : false,
+		atomic_evidence : witnesses
+	};
 }
 
-function jsonToPrologTerm(json) {
+// The bindings parameter holds the Prolog variable bindings across the entire (complex) term
+function jsonToPrologTerm(json, bindings = {}) {
 	// List of json terms (base case)
-	// if (json instanceof Array) return json.map(element => jsonToPrologTerm(element));
 	// Printing all of the 'evidence' for a judgement makes it impossible to read!
 	// Instead, we note that it has been cut down - the proof tree can be found elsewhere
 	if (json instanceof Array) return "(...)";
 
 	// Atoms (base case)
-	if (json.args == undefined) return json;
+	if (json.args == undefined) {
+		// If it starts with an underscore, it is a Prolog variable and needs to be rebound
+		if (json[0] == '_') {
+			// This variable is not yet bound, so create a new binding, starting from V1, V2, V3, ...
+			if (bindings[json] == undefined) {
+				var nth_variable = Object.keys(bindings).length + 1;
+				var new_binding = 'V' + nth_variable;
+				bindings[json] = new_binding;
+			}
+
+			json = bindings[json];
+		}
+
+		return json;
+	}
+
+	if (json.type == 'implies') {
+		var conditions = json.args[0]
+							.filter(condition => condition.type != 'constraint')
+							.map(condition => jsonToPrologTerm(condition, bindings));
+		var conditions_text = conditions.join(',');
+		if (conditions.length > 1) conditions_text = `(${conditions_text})`;
+	
+		var conclusion = jsonToPrologTerm(json.args[1], bindings);
+		return 	`${conditions_text}⇒${conclusion}`;
+	}
 	
 	// Complex terms (recursive case)
-	jsonified_arguments = json.args.map(arg => jsonToPrologTerm(arg));
+	jsonified_arguments = json.args.map(arg => jsonToPrologTerm(arg, bindings));
 	functor = json.type;
 	
 	if (json.value == undefined) return `${functor}(${jsonified_arguments})`;
 
-	value = (Math.round(json.value * 100) / 100).toFixed(3);
+	value = (Math.round(json.value * 100) / 100).toFixed(2);
 	return `${functor}(${jsonified_arguments})=${value}`;
 }
 

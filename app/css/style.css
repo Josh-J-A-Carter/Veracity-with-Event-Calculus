@@ -1,12 +1,17 @@
 :root {
     --menu-height: 0%;
     --old-menu-height: 0%;
+    --line-height: 1em;
 }
 
 html, body, #container {
     height: 100%;
     width: 100%;
     margin: 0;
+}
+
+* {
+    line-height: var(--line-height);
 }
 
 #container  {
@@ -71,19 +76,46 @@ html, body, #container {
     cursor: pointer; /* Cursor on hover */
 }
 
-#info textarea {
+.skip-line {
+    height: 30px;
+}
+
+.textarea {
     width: 99%;
-    resize: none;
     max-height: var(--menu-height);
     height: var(--menu-height);
     overflow-y: scroll;
-    background-color: #fff;
+    background-color: white;
     color: black;
+    padding-top: 6px;
+    padding-left: 4px;
+    text-wrap:pretty;
 }
 
+.scripts {
+    display: inline-table;
+    grid-template-rows: 1fr 1fr;
+    position: relative;
+    bottom: calc(var(--line-height)/2);
+    height: var(--line-height);
+    padding-top: 8px;
+}
+
+.super {
+    display: table-row;
+    font-size: 90%;
+    vertical-align: super;
+}
+
+.sub {
+    padding-top: 1px;
+    font-size: 80%;
+    display: table-cell;
+    vertical-align: sub;
+}
 
 .menu-wrapper {
-    background-color: #eee;
+    background-color: #ddd;
     padding: 2px;
     border-radius: 2px;
     border-color: #bbb;
@@ -121,11 +153,12 @@ html, body, #container {
     width: 100%;
     max-height: var(--menu-height);
     height: var(--menu-height);
-    overflow-y: hidden;
+    padding-bottom: 6px;
 }
 
 .menu.opened.buttons {
     overflow-y: scroll;
+    background-color: white;
 }
 
 .menu button {
@@ -138,13 +171,17 @@ html, body, #container {
     text-decoration: none;
     text-align: left;
 }
+
+.menu button:hover:not(.active) {
+    background-color: #ccc;
+}
   
-.menu button.not-current {
-    background-color: #ecc;
+.menu button.not-current:not(.active) {
+    background-color: #eed6d6;
 }
 
-.menu button:hover {
-    background-color: #ccc;
+.menu button.not-current:hover:not(.active) {
+    background-color: #dec6c6;
 }
   
 .menu button.active {
