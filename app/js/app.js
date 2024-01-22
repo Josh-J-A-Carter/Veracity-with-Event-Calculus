@@ -6,6 +6,8 @@ function updateDisplay() {
 		current_timestamp = current_info.timestamp;
 	}
 
+	console.log(current_info);
+
 	// Update the timeline slider
 	const slider = document.getElementById("timeline");
 	slider.max = timeline.length;

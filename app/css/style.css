@@ -75,7 +75,7 @@ html, body, #container {
     width: 99%;
     resize: none;
     height: auto;
-    overflow-y: hidden;
+    overflow-y: scroll;
     background-color: #fff;
     color: black;
 }
@@ -120,7 +120,11 @@ html, body, #container {
     width: 100%;
     max-height: var(--menu-height);
     height: var(--menu-height);
-    overflow-y: auto;
+    overflow-y: hidden;
+}
+
+.menu.opened.buttons {
+    overflow-y: scroll;
 }
 
 .menu button {
