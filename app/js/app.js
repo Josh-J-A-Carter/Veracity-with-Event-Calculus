@@ -511,7 +511,7 @@ function toggleMenu(label) {
 	// Recalculate the size that all the menus need to be;
 	// this depends on how many menus are open, and the viewport size.
 
-	var total_height = window.innerHeight * 0.25;
+	var total_height = window.innerHeight * 0.3;
 
 	// How many menus are open now?
 	var menu_wrappers = Array.from(menu.parentNode.parentNode.children);
