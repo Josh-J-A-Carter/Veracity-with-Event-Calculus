@@ -52,7 +52,7 @@ construct_json_narrative([Current | Remaining]) :-
     tick,
     findall(JsonFluent, (holdsAt(Fluent, Future), jsonify(Fluent, JsonFluent)), Fluents),
     % Recurse through the narrative until the length is less than one
-    (
+    !, (
         narrative(Narrative), length(Narrative, Length), Length >= 1,
         construct_json_narrative(Remaining)
     ;

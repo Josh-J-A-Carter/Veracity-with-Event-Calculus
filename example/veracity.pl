@@ -41,6 +41,3 @@ happens(verify(retailer, "audit", claim(bottle_1, no_change(1101), 1201), 1.0), 
 
 
 happens(disprove(customer, [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2)), 1202).
-
-% % What fluents hold at T=1500?
-happens(query, 1500).

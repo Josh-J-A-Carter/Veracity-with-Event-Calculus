@@ -5,7 +5,7 @@ print_narrative :-
     initialiseDEC,
     repeat,
     print_dec_state, nl,
-    narrative(Narrative), length(Narrative, Length), Length =< 1.
+    narrative(Narrative), length(Narrative, Length), Length < 1.
 
 print_dec_state :-
     adjacent_timestamps(Timestamp, Future),
@@ -17,6 +17,10 @@ print_dec_state :-
     ansi_format([fg(green)], "Fluents that hold just after ~w~n", [Date]),
     forall((holdsAt(Fluent, Future), Fluent \= (judgement(_, _, _)=_)), (print(Fluent), nl)),
     forall(holdsAt(judgement(J, _E, C)=K, Future), (print(judgement(J,'[...]', C)=K), nl)),
-    nl.
+    nl, !.
 
 ?- print_narrative.
+
+
+% retractall(happens(_,_)), [app/cached_dec, example/production_process].
+% [example/queries].

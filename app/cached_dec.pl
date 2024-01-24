@@ -412,7 +412,11 @@ generate_narrative :-
     % Cache the initial conditions
     cache_holdsAt(Initial_Timestamp),
     % Cache any newly caused events
-    cache_causes(Initial_Timestamp).
+    % update_judgements(Affected_Entities, Initial_Timestamp),
+    % % Apply implicative judgement rules to derive new judgements where necessary
+    % derive_implied_judgements(Affected_Entities, Initial_Timestamp),
+    cache_causes(Initial_Timestamp),
+    assert(cached(Initial_Timestamp)).
 
 % Get rid of the most recent timestamp in the narrative; it will no longer be needed
 advance_narrative :-
@@ -423,9 +427,10 @@ advance_narrative :-
 % First element of the narrative is the previous timestamp, and the second is the current timestamp.
 adjacent_timestamps(Previous_Timestamp, Current_Timestamp) :-
     narrative([Previous_Timestamp, Current_Timestamp | _Future]).
-% We have no more events at the moment, so don't attempt to predict the future
-adjacent_timestamps(Previous_Timestamp, _Future) :-
-    narrative([Previous_Timestamp | []]).
+% We have no more events, but need to display the fluents which were affected by Previous_Timestamp
+adjacent_timestamps(Previous_Timestamp, Future) :-
+    narrative([Previous_Timestamp | []]),
+    Future is Previous_Timestamp + 0.001.
 
 % Tick to the next event
 tick :-
