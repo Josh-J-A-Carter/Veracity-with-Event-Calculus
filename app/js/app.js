@@ -4,12 +4,16 @@ function updateDisplay() {
 	if (current_info == undefined) {
 		current_info = timeline[0];
 		current_timestamp = current_info.timestamp;
-	}	
+	}
 
 	// Update the timeline slider
 	const slider = document.getElementById("timeline");
 	slider.max = timeline.length;
 	slider.min = 1;
+
+	// Update timestamp indicator
+	const timestamp_label = document.getElementById("timestamp");
+	timestamp.innerHTML = `T=${current_timestamp}`;
 
 	// Update the graph options
 	// Always have the option of trust fluents, but also make it clear if there aren't any trust fluents in this current timestamp
@@ -66,6 +70,32 @@ function updateDisplay() {
 	const display_options_div = document.getElementById("display-options");
 	display_options_div.innerHTML = options_html;
 
+	// Adding up / down arrow bindings to switch between options
+	var buttons = Array.from(display_options_div.children);
+	buttons.forEach(button => {
+		button.onkeydown = e => {
+			switch(e.which) {
+				case 38: // up
+					var sibling = button.previousSibling;
+					if (sibling == undefined) break;
+					sibling.focus();
+					// Call the sibling's onclick - need this weird syntax to change the execution context
+					(function() {eval(sibling.getAttribute('onclick'))}).call(sibling);
+					break;
+
+				case 40: // down
+					var sibling = button.nextSibling;
+					if (sibling == undefined) break;
+					sibling.focus();
+					// Call the sibling's onclick - need this weird syntax to change the execution context
+					(function() {eval(sibling.getAttribute('onclick'))}).call(sibling);
+					break;
+
+				default: return; // exit this handler for other keys
+			}
+			e.preventDefault(); // prevent the default action (scroll / move caret)
+		};
+	});
 
 
 	//// Update the fluents / events for this timestamp
@@ -100,15 +130,19 @@ function updateGraph() {
 	// Default to displaying trust fluents
 	if (graph_mode == undefined) graph_mode = 'trust';
 
+	// Calculate the nodes and edges
 	if (graph_mode == 'trust') var obj = calculateTrustGraph();
 	else var obj = calculateJudgementGraph();
-
 	const { graph, display_information } = obj;
+
+	// Sort the nodes and edges so that they will always be displayed in the same order
+	const sorted_data = [...graph];
+	sorted_data.sort((n1, n2) => n1.data.id.localeCompare(n2.data.id));
 
 	// Display the graph
 	var cy = cytoscape({
 		container: document.getElementById("graph"), // container to render in
-		elements: [...graph],
+		elements: sorted_data,
 	
 		// the stylesheet for the graph
 		style: [{
@@ -198,13 +232,17 @@ function updateGraph() {
 
 	// Events for selecting a node, or hovering over it.
 	cy.on("tap", "node", event => {
+		// Store which node is now selected
 		var current_id = event.target.id();
 		var entry = display_information.find(node => node.id == current_id);
 		selected_node = current_id;
 
-		const selected_node_text = document.getElementById('selected-node-text');
+		// Update the visual indicator for the current node
+		const current_node_label = document.getElementById('current-node');
+		current_node_label.innerHTML = `Node '${current_id}' is selected`;
 		
 		// Update the display area text
+		const selected_node_text = document.getElementById('selected-node-text');
 		var entry = display_information.find(node => node.id == selected_node);
 		if (entry != undefined) selected_node_text.innerHTML = entry.text;
 		else selected_node_text.innerHTML = "";
@@ -354,7 +392,6 @@ function calculateTrustGraph() {
 					id : `trust(${name_1}, ${name_2})`,
 					source : name_1,
 					target : name_2,
-					weight : fluent.value,
 					highlight : true
 				}
 			})
