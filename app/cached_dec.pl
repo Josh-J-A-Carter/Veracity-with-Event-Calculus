@@ -254,15 +254,14 @@ update_judgements(Affected_Entities, T) :-
         List_2
     ),
     % initially/1 predicates defining judgement/3 fluents
-    ((T_Previous = 0)
-        -> (List_1 = [], List_2 = [],
-            findall(
+    (T_Previous = -1
+        -> (findall(
             judgement(Judge, Evidence, Claim)=Confidence,
             (initially(judgement(Judge, Evidence, Claim)=Confidence),
             % We need Confidence to be instantiated
             \+ var(Confidence)),
             List_3))
-        % T \= 0,
+        % T \= 0
         ; List_3 = []),
     % Append into one list, sort to remove duplicates
     append(List_Of_Lists, Merged_List),
@@ -412,9 +411,9 @@ generate_narrative :-
     % Cache the initial conditions
     cache_holdsAt(Initial_Timestamp),
     % Cache any newly caused events
-    % update_judgements(Affected_Entities, Initial_Timestamp),
-    % % Apply implicative judgement rules to derive new judgements where necessary
-    % derive_implied_judgements(Affected_Entities, Initial_Timestamp),
+    update_judgements(Affected_Entities, Initial_Timestamp),
+    % Apply implicative judgement rules to derive new judgements where necessary
+    derive_implied_judgements(Affected_Entities, Initial_Timestamp),
     cache_causes(Initial_Timestamp),
     assert(cached(Initial_Timestamp)).
 
@@ -431,6 +430,8 @@ adjacent_timestamps(Previous_Timestamp, Current_Timestamp) :-
 adjacent_timestamps(Previous_Timestamp, Future) :-
     narrative([Previous_Timestamp | []]),
     Future is Previous_Timestamp + 0.001.
+% We want to have initial judgements propagated when the initial timestamp is calculated
+adjacent_timestamps(-1, 0).
 
 % Tick to the next event
 tick :-

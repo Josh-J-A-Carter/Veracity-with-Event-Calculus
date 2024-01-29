@@ -611,10 +611,10 @@ function submit(event) {
 }
 
 function handleError(error) {
-	var message = "Non-termination detected";
+	var message = "Server unresponsive - there may be an infinite loop";
 
-	if (error.message == 'syntax_error') message = "Syntax errors detected";
-	if (error.message == 'warning') message = "Warnings detected";
+	if (error.message == 'syntax_error') message = "Syntax error(s) reported";
+	if (error.message == 'warning') message = "Warning(s) reported";
 
 	const indicator = document.getElementById('indicator');
 	indicator.innerHTML = message;
