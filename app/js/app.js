@@ -6,6 +6,9 @@ function updateDisplay() {
 		current_timestamp = current_info.timestamp;
 	}
 
+	const indicator = document.getElementById('indicator');
+	indicator.style.visibility = 'hidden';
+
 	// Update the timeline slider
 	const slider = document.getElementById("timeline");
 	slider.max = timeline.length;
@@ -501,7 +504,7 @@ function jsonToPrologTerm(json, bindings = {}) {
 		var conditions = json.args[0]
 							.filter(condition => condition.type != 'constraint')
 							.map(condition => jsonToPrologTerm(condition, bindings));
-		var conditions_text = conditions.join(',');
+		var conditions_text = conditions.join(', ');
 		if (conditions.length > 1) conditions_text = `(${conditions_text})`;
 	
 		var conclusion = jsonToPrologTerm(json.args[1], bindings);
@@ -581,7 +584,7 @@ function moveSlider(event) {
 
 // Update the EEC without redirecting to another page
 function submit(event) {
-    var url = "/update_eec";
+    var url = "/update_dec";
     var data = {};
 
     for (let node of event.target.children) {
@@ -597,16 +600,30 @@ function submit(event) {
         })
         .then(res => res.json())
         .then(data => {
+			if (data.success == false) throw new Error(data.error_type);
+
             timeline = data.timeline;
 			updateDisplay();
-        });
+        })
+		.catch(error => handleError(error));
 
     event.preventDefault();
 }
 
+function handleError(error) {
+	var message = "Non-termination detected";
+
+	if (error.message == 'syntax_error') message = "Syntax errors detected";
+	if (error.message == 'warning') message = "Warnings detected";
+
+	const indicator = document.getElementById('indicator');
+	indicator.innerHTML = message;
+	indicator.style.visibility = 'visible';
+}
+
 // Event listeners
 // Sending data to the server
-document.getElementById("update_eec").addEventListener("submit", submit);
+document.getElementById("update_dec").addEventListener("submit", submit);
 // Moving the timeline slider
 document.getElementById("timeline").addEventListener("input", moveSlider);
 

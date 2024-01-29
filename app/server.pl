@@ -5,31 +5,49 @@
 :- use_module(library(http/http_client)).
 :- use_module(library(http/json)).
 
+% Make sure that compilation errors/warnings are reported from loaded files
+:- multifile user:message_hook/3.
+user:message_hook(load_file_errors(_File, Errors, Warnings), _Level, _Lines) :-
+    (Errors > 0 ; Warnings > 0), throw(error(syntax_error('no information'), Errors > 0)).
+
 server(Port) :- http_server(http_dispatch, [port(Port)]).
 :- server(8000).
 
 :- http_handler(root(_Path), http_reply_file('index.html', []), []).
 :- http_handler(root('js/app.js'), http_reply_file('js/app.js', []), []).
 :- http_handler(root('js/cytoscape.js'), http_reply_file('js/cytoscape.js', []), []).
-% :- http_handler(root('js/cytoscape-euler.js'), http_reply_file('js/cytoscape-euler.js', []), []).
 :- http_handler(root('js/cytoscape-klay.js'), http_reply_file('js/cytoscape-klay.js', []), []).
 :- http_handler(root('js/klay.js'), http_reply_file('js/klay.js', []), []).
 :- http_handler(root('css/style.css'), http_reply_file('css/style.css', []), []).
-:- http_handler(root('update_eec'), update_eec, []).
+:- http_handler(root('update_dec'), update_dec, []).
 
-update_eec(Request) :-
+update_dec(Request) :-
     % Process the HTTP request, parsing the body JSON, and extracting relevant key-value pairs
     member(method(post), Request), !,
     http_read_data(Request, Data, []),
     atom_json_term(Data, InJSON, []),
     InJSON = json(Elements), member(code=Code, Elements),
     % Write the client's code to a file, consult it, and return the output as JSON
-    write_to_file(Code, File),
-    retractall(happens(_,_)), [File], initialiseDEC,
-    format('Content-type: application/json~n~n', []),
-    construct_json_narrative(Timeline),
-    OutJSON = (_{success : true, timeline : Timeline}),
-    json_write(current_output, OutJSON).
+    catch(
+        (
+            write_to_file(Code, File),
+            retractall(happens(_,_)), [File], initialiseDEC,
+            construct_json_narrative(Timeline),
+            OutJSON = (_{success : true, timeline : Timeline}),
+            format('Content-type: application/json~n~n', []),
+            json_write(current_output, OutJSON, [true(true)])
+        ),
+        error(_, IsError),
+        (
+            format('Content-type: application/json~n~n', []),
+            % Can be an error OR a warning, and we want to preserve this information
+            (
+                IsError -> ErrorType = 'syntax_error'
+                ; ErrorType = 'warning'
+            ),
+            json_write(current_output, _{ success : false, error_type : ErrorType }, [false(false), true(true)])
+        )
+    ).
 
 % Write the client's code to a local server file
 write_to_file(Code, Filename) :-

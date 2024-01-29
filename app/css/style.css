@@ -73,12 +73,20 @@ html, body, #container {
     font-family: monospace;
 }
 
+#indicator {
+    position: absolute;
+    right: 2px;
+    color: #ff3333;
+    visibility: hidden;
+}
+
 #info {
     grid-column: 2;
     grid-row: 1;
     max-height: 100%;
     height: 100%;
     width: 100%;
+    max-width: 100%;
 }
 
 #info #timestamp {
@@ -116,6 +124,7 @@ html, body, #container {
 
 .textarea {
     width: 99%;
+    max-width: 99%;
     max-height: var(--menu-height);
     height: var(--menu-height);
     overflow-y: scroll;

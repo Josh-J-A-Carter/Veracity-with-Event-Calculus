@@ -15,4 +15,5 @@ initiates(verify(Entity, Evidence, Claim, Confidence), judgement(Entity, [Eviden
 
 happens(verify(vineyard, testing, non_toxic, 1.0), 1).
 
-happens(verify(winery, audit, organic, 0.95), 2)
+happens(verify(winery, audit, organic, 0.95), 2).
+
