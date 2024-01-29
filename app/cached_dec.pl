@@ -167,7 +167,9 @@ derive_once(Entity, T, Again) :-
     % Check every implication that is relevant to this entity
     forall(
         (
-            holdsAt(Implicative_Judgement, T),
+            % Using holdsAtCached/2, since we have already cached all the judgements for this timestamp, and then 
+            % removed any judgements which no longer hold - holdsAt/2 can return fluents that have just been terminated
+            holdsAtCached(Implicative_Judgement, T),
             Implicative_Judgement = (judgement(Entity, _Evidence, Conditions ==> Consequence)=Implicative_Confidence),
             % Separate 'Conditions' into 'Claims' and 'Constraints'
             % Claims will need to be unified with judgements, and then Constraints are applied

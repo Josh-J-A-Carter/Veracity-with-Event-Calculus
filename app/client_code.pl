@@ -15,6 +15,6 @@ initiates(verify(Entity, Evidence, Claim, Confidence), judgement(Entity, [Eviden
 
 %%% Narrative
 
-happens(verify(vineyard, testing, non_toxic, 1.0), 0).
+happens(verify(vineyard, testing, non_toxic, 1.0), 1).
 
 happens(verify(winery, audit, organic, 0.95), 2).
