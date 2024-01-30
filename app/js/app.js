@@ -183,6 +183,13 @@ function updateGraph() {
 			}
 		},
 		{
+			selector: 'node.select',
+			style: {
+				'border-width': 4,
+		    	'border-color': '#6666ff'
+			}
+		},
+		{
 			selector: 'edge',
 			  style: {
 				'width': 2,
@@ -212,8 +219,8 @@ function updateGraph() {
 	});
 
 	// Set all of the elements that are labelled as highlighted to the 'highlight' class
-	cy.elements('[highlight]')
-		.addClass('highlight');
+	cy.elements('[highlight]').addClass('highlight');
+	cy.getElementById(selected_node).addClass('select');
 
 	// Make sure zooming is controlled and consistent between timestamps
 	// i.e. swapping to another timestamp shouldn't reset the zoom level
@@ -235,14 +242,16 @@ function updateGraph() {
 
 	// Events for selecting a node, or hovering over it.
 	cy.on("tap", "node", event => {
+		// Remove selection style from previous node and add to the new one
+		cy.getElementById(selected_node).removeClass('select');
+		event.target.addClass('select');
+
 		// Store which node is now selected
-		var current_id = event.target.id();
-		var entry = display_information.find(node => node.id == current_id);
-		selected_node = current_id;
+		selected_node = event.target.id();
 
 		// Update the visual indicator for the current node
 		const current_node_label = document.getElementById('current-node');
-		current_node_label.innerHTML = `Node '${current_id}' is selected`;
+		current_node_label.innerHTML = `Node '${selected_node}' is selected`;
 		
 		// Update the display area text
 		const selected_node_text = document.getElementById('selected-node-text');
@@ -439,7 +448,7 @@ function proofTreeRecurse(json_judgement) {
 	var previous_proofs = evidence_objects
 					.filter(e => e.pre_text != undefined)
 					.map(e => e.pre_text)
-					.reduce((text, e) => `${text}${e}<br><div class="skip-line"></div>`, '');
+					.reduce((text, e) => `<br><div class="skip-line"></div>${e}${text}`, '');
 	
 	// Collect the atomic witnesses which combine to this current judgement, and display them as text
 	// Make sure that there are no duplicate atomic witnesses
@@ -464,7 +473,7 @@ function proofTreeRecurse(json_judgement) {
 	if (atomic_evidence) var conclusion = `${witness_text}${scripts} ∈ ${claim}`;
 
 	else {
-		var pre_text = `${previous_proofs}${evidence} ⊢ ${witness_text}${scripts} ∈ ${claim}`;
+		var pre_text = `${evidence} ⊢ ${witness_text}${scripts} ∈ ${claim}${previous_proofs}`;
 		var conclusion = `${witness_text}${scripts} ∈ ${claim}`;
 	}
 
