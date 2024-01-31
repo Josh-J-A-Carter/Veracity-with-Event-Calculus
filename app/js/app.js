@@ -420,7 +420,7 @@ function buildProofTree(json_judgement) {
 	return pre_text;
 }
 
-function proofTreeRecurse(json_judgement) {
+function proofTreeRecurse(json_judgement, claim_styles = {}) {
 	// Base case: atom
 	// We don't need to prove atomic pieces of evidence any further.
 
@@ -439,7 +439,7 @@ function proofTreeRecurse(json_judgement) {
 	};
 
 	var agent = jsonToPrologTerm(json_judgement.args[0]);
-	var evidence_objects = json_judgement.args[1].map(e => proofTreeRecurse(e));
+	var evidence_objects = json_judgement.args[1].map(e => proofTreeRecurse(e, claim_styles));
 	var claim = jsonToPrologTerm(json_judgement.args[2]);
 	var confidence = (Math.round(json_judgement.value * 100) / 100).toFixed(2);
 
@@ -467,21 +467,45 @@ function proofTreeRecurse(json_judgement) {
 					.map(e => e.conclusion)
 					.join(', ');
 	
+	// Style the claim (uniquely) for better readability
+	if (claim_styles[claim] == undefined) {
+		var taken_styles = Object.keys(claim_styles).length;
+		var colour_options = Object.keys(possible_claim_colours).length;
+		var decoration_options = Object.keys(possible_claim_decoration).length;
+
+		if (taken_styles >= colour_options * decoration_options) claim_styles[claim] = '';
+		
+		else {
+			// Colour choices wrap around
+			var next_colour_index = taken_styles % colour_options;
+			// Determine which text decoration is required, based on the number of taken styles
+			// We know this won't go past decoration_options because we've already checked that in the if statement
+			var next_decoration_index = Math.trunc(taken_styles / colour_options);
+			claim_styles[claim] = 
+				`color : ${possible_claim_colours[next_colour_index]} ;
+				text-decoration : ${possible_claim_decoration[next_decoration_index]}`;
+		}
+	}
+
+	var claim_element = `<span style="${claim_styles[claim]}">${claim}</span>`;
+	
+	// Glue it all together with logic symbols, and return it
 	var scripts = `<div class="scripts"><span class="super">${agent}</span><span class="sub">${confidence}</span></div>`;
 
 	var atomic_evidence = evidence_objects.find(e => e.atomic == true);
-	if (atomic_evidence) var conclusion = `${witness_text}${scripts} ∈ ${claim}`;
+	if (atomic_evidence) var conclusion = `${witness_text}${scripts} ∈ ${claim_element}`;
 
 	else {
-		var pre_text = `${evidence} ⊢ ${witness_text}${scripts} ∈ ${claim}${previous_proofs}`;
-		var conclusion = `${witness_text}${scripts} ∈ ${claim}`;
+		var pre_text = `${evidence} ⊢ ${witness_text}${scripts} ∈ ${claim_element}${previous_proofs}`;
+		var conclusion = `${witness_text}${scripts} ∈ ${claim_element}`;
 	}
 
 	return { 
 		pre_text : pre_text,
 		conclusion : conclusion,
 		atomic : false,
-		atomic_evidence : witnesses
+		atomic_evidence : witnesses,
+		claim_colours : claim_styles
 	};
 }
 
@@ -649,3 +673,26 @@ var selected_node = undefined;
 // Current zoom level and screen position
 var current_zoom = 1;
 var screen_position = undefined;
+
+
+// Style options for making claims more readable
+possible_claim_colours = [
+		'#0075DC',	// Blue
+		'#FF0010',	// Red
+		'#F0A3FF',	// Amethyst
+		'#2BCE48',	// Green
+		'#740AFF',	// Violet
+		'#C22299',	// "Mallow"
+		'#00998F',	// Turquoise
+		'#FF8405',	// Orange
+		'#5EE1E2',	// "Sky"
+		'#FFD100',	// Yellow
+		'#BB4444'	// "Wine"
+	];
+
+possible_claim_decoration = [
+	"none",
+	"underline",
+	"wavy underline",
+	"underline dotted"
+];

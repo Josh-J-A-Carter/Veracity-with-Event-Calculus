@@ -165,7 +165,8 @@ derive_implied_judgements([Entity | Remaining_Entities], T) :-
 
 derive_once(Entity, T, Again) :-
     % Check every implication that is relevant to this entity
-    forall(
+    findall(
+        derived,
         (
             % Using holdsAtCached/2, since we have already cached all the judgements for this timestamp, and then 
             % removed any judgements which no longer hold - holdsAt/2 can return fluents that have just been terminated
@@ -178,17 +179,20 @@ derive_once(Entity, T, Again) :-
             claims_to_judgements(Entity, Claims, Judgements, Implicative_Confidence, Total_Confidence),
             % Try to bind the judgements to actual variables based on the Entity's existing judgements
             % and based on the Body clause (which needs to be check *after* instantiation)
-            satisfy_conditions(Entity, Judgements, Constraints, T)
-        ),
-        (
+            satisfy_conditions(Entity, Judgements, Constraints, T),
             % % Attempt to satisfy / initialise the judgements
-            (Confidence is Total_Confidence, Evidence = [Implicative_Judgement | Judgements], 
+            Confidence is Total_Confidence, Evidence = [Implicative_Judgement | Judgements], 
             Resulting_Judgement = (judgement(Entity, Evidence, Consequence)=Confidence),
-            \+ holdsAtCached(Resulting_Judgement, T))
-                -> (assert(holdsAtCached(Resulting_Judgement, T)),
-                    Again = true)
-                ; true
-        )
+            \+ holdsAtCached(Resulting_Judgement, T),
+            assert(holdsAtCached(Resulting_Judgement, T))
+        ),
+        New_Judgements_Derived
+    ),
+    % If we derived any new judgements, unify Again with true
+    length(New_Judgements_Derived, Length),
+    (Length >= 1 
+        -> Again = true
+        ; Again = false
     ).
 
 
