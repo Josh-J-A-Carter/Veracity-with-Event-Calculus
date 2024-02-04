@@ -407,7 +407,7 @@ fcUndo(Fact) :-
   % undo a random fact, printing out the trace, if relevant.
   retract(Fact),
   pfcTraceRem(Fact),
-  unFc1(Fact).
+  unFc(Fact).
   
 
 
@@ -441,6 +441,7 @@ pfcRetractSupportRelations(Fact) :-
   (Type=trigger -> pfcRemSupport(P,(_,Fact))
                 ; pfcRemSupport(P,(Fact,_))),
   removeIfUnsupported(P),
+  %%%%%%%%%%%%%%%%%%%%% I believe it's not generating all choice points here
   fail.
 pfcRetractSupportRelations(_).
 
@@ -789,7 +790,7 @@ pfc_nf1(P,[P]) :-
 
 %%% shouln't we have something to catch the rest as errors?
 pfc_nf1(Term,[Term]) :-
-  pfcWarn("pfc_nf doesn't know how to normalize ~w",[Term]).
+  pfcWarn("pfc_nf doesn''t know how to normalize ~w",[Term]).
 
 
 %% pfc_nf1_negation(P,NF) is true if NF is the normal form of \+P.

@@ -40,8 +40,7 @@ pfcDatabaseItem(Term) :-
   functor(Term,P,A),
   clause(Term,_).
 
-pfcRetractOrWarn(X) :-  retract(X), !.
-pfcRetractOrWarn(X) :- 
-  pfcWarn("Couldn't retract ~p.",[X]).
+pfcRetractOrWarn(X) :- retract(X).
+pfcRetractOrWarn(X) :- pfcWarn('Couldn''t retract ~p.',[X]).
 
 

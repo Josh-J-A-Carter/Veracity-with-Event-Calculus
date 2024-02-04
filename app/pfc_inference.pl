@@ -1,5 +1,12 @@
 :- ['pfc/pfc1.2/src/pfc'].
 :- pfcNoWarnings.
+:- add((
+        holdsAt(judgement(A, Evidence, Claim)=Confidence), holdsAt(trust(B, A)=Trust)
+        % { \+ pfc(holdsAt(judgement(B, _Evidence, Claim)=_Confidence))}
+        ==> { New_Confidence is Confidence * Trust }, holdsAtDerived(judgement(B, Evidence, Claim)=New_Confidence)
+    )).
+
+
 
 %%% Goes forever if there are cycles
 % :- add((holdsAt(j(A, Q)=Confidence), holdsAt(trust(B, A)=Trust) ==> {NC is Confidence * Trust}, holdsAt(j(B,Q)=NC))).
@@ -35,13 +42,15 @@
 
 
 
-update_pfc(Vertex_List, Edge_Dict) :-
+update_pfc(Vertex_List, Edge_Dict, Judgements) :-
     % Run the Floyd–Warshall algorithm to get highest trust for each node pair (A,B).
     floyd_warshall(Vertex_List, Edge_Dict, Trust_Dict),
     % Update the Pfc engine, disabling inference until all modifications have been made.
     % pfcHalt, 
     assert_modified_trust(Trust_Dict),
-    % assert_modified_judgements(), pfcRun,
+    assert_modified_judgements(Judgements),
+    % pfcRun,
+    % extract_new_judgements(Judgements),
     !.
 
 assert_modified_trust(Trust_Dict) :-
@@ -55,8 +64,28 @@ assert_modified_trust(Trust_Dict) :-
                 ; (rem2(holdsAt(trust(A, B)=_Old_Trust)),
                     (Trust = 0 ; add(holdsAt(trust(A, B)=Trust))))
             ))
-        )).
+        )), !.
 
+assert_modified_judgements(Judgements) :-
+    % Update the *atomic* judgements which have been modified, i.e. their justification in Pfc is [user]
+    % Derived judgements (from trust or implicative claims) should not be manipulated directly as they still have support
+    forall(member(Judgement, Judgements),
+        (
+            Judgement = (judgement(Judge, _Evidence, Claim)=Confidence),
+            Old_Judgement = (judgement(Judge, _Old_Evidence, Claim)=_Old_Confidence),
+            (
+                % If the judgement does not yet exist in Pfc, add it
+                (\+ pfc(holdsAt(Old_Judgement))), add(holdsAt(Judgement))
+                % Or, if the judgement already exists in Pfc and has justification of [user]
+                ;   justification(holdsAt(Old_Judgement), [user]),
+                    % Then remove the existing judgement from Pfc
+                    rem2(holdsAt(Old_Judgement)),
+                    % Add the new judgement (unless Confidence is 0)
+                    (Confidence = 0 ; add(holdsAt(Judgement)))
+                % Otherwise, this is a derived judgement, so we shouldn't manipulate it
+                ; true
+            )
+        )), !.
 
 floyd_warshall(Vertex_List, Edge_Dict, Output_Dict) :-
     % Create the dictionary of initial trust values
@@ -107,7 +136,7 @@ loop_three(_V_One, _V_Two, [], _Vertex_List, Output_Dict, Output_Dict).
 
 % Queries
 
-% update_pfc([a, b, c], _{a:_{b:0.8, c:0.2}, b:_{c:1.0}}).
+% update_pfc([a, b, c], _{a:_{b:0.8, c:0.2}, b:_{c:1.0}}, [judgement(c, [e], claim)=0.5]).
 % pfc(X).
 
 
