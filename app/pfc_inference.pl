@@ -1,55 +1,42 @@
 :- ['pfc/pfc1.2/src/pfc'].
 :- pfcNoWarnings.
+
+% Rule - Propagate judgements through trust relations
 :- add((
-        holdsAt(judgement(A, Evidence, Claim)=Confidence), holdsAt(trust(B, A)=Trust)
-        % { \+ pfc(holdsAt(judgement(B, _Evidence, Claim)=_Confidence))}
-        ==> { New_Confidence is Confidence * Trust }, holdsAtDerived(judgement(B, Evidence, Claim)=New_Confidence)
-    )).
+        holdsAt(judgement(A, Evidence, Claim)=Confidence), atm(judgement(A, Evidence, Claim)=Confidence), holdsAt(trust(B, A)=Trust)
+        % Derived judgements aren't asserted to be atomic so that they won't trigger this rule, because
+        % they won't derive any unique judgements through trust; all trust pairs have already been calculated.
+        ==> { New_Evidence = [judgement(A, Evidence, Claim)=Confidence, trust(B, A)=Trust], New_Confidence is Confidence * Trust }, 
+        holdsAt(judgement(B, New_Evidence, Claim)=New_Confidence)
+)).
+
+% Rule - Implicative judgements derive consequent when the antecedent is true
+:- add((
+    holdsAt(judgement(Agent, Evidence, Antecedent ==> Consequent)=Base_Confidence),
+    { Base_Evidence = [judgement(Agent, Evidence, Antecedent ==> Consequent)=Base_Confidence],
+    check_antecedent(Agent, [Antecedent], Base_Confidence, Base_Evidence, Total_Confidence, Total_Evidence) }
+    ==> holdsAt(judgement(Agent, Total_Evidence, Consequent)=Total_Confidence)
+)).
+
+check_antecedent(Agent, [Claim | Remaining], Acc_Confidence, Acc_Evidence, Confidence, Evidence) :-
+    Judgement = (judgement(Agent, _Evidence, Claim)=New_Confidence),
+    pfc(holdsAt(Judgement)),
+    write('2: '),write(Judgement),nl,
+    Temp_Confidence is Acc_Confidence * New_Confidence,
+    Temp_Evidence = [Judgement | Acc_Evidence],
+    check_antecedent(Agent, Remaining, Temp_Confidence, Temp_Evidence, Confidence, Evidence).
+check_antecedent(_Agent, [], Confidence, Evidence, Confidence, Evidence).
 
 
 
-%%% Goes forever if there are cycles
-% :- add((holdsAt(j(A, Q)=Confidence), holdsAt(trust(B, A)=Trust) ==> {NC is Confidence * Trust}, holdsAt(j(B,Q)=NC))).
-
-%%% Avoids cycles in a very basic way
-% :- add((
-%         holdsAt(j(A, Claim)=Confidence), holdsAt(trust(B, A)=Trust), { 
-%             % The confidence for the new judgement we are making
-%             New_Confidence is Confidence * Trust,
-%             % Check if there is already a judgement from this agent about this claim
-%             \+ (pfc(holdsAt(j(B, Claim)=Existing)), Existing >= New_Confidence)
-%         } ==> holdsAt(j(B, Claim)=New_Confidence)
-%     )).
-
-%%% Removes old judgements (from same agent and about same claim) if we find a better confidence value
-%%% This method seems to ensure *correctness*, though the time complexity may not be fast enough?
-% :- add((
-%         holdsAt(j(A, Claim)=Confidence), holdsAt(trust(B, A)=Trust), { 
-%             % The confidence for the new judgement we are making
-%             New_Confidence is Confidence * Trust,
-%             % Check if there is already a judgement of the same agent and claim
-%             (pfc(holdsAt(j(B, Claim)=Existing))
-%                     % There IS an existing judgement - if existing confidence is higher, then fail
-%                     -> (Existing >= New_Confidence
-%                         -> fail
-%                         % Otherwise, the new confidence is better, so retract the old judgement
-%                         ; remove(holdsAt(j(B, Claim)=Existing))
-%                     )
-%                     % There is no existing judgement; we can continue
-%                     ; true)
-%         } ==> holdsAt(j(B, Claim)=New_Confidence)
-%     )).
-
-
-
+% Called when trust and atomic judgement fluents are changed, in order to re-derive judgements
 update_pfc(Vertex_List, Edge_Dict, Judgements) :-
     % Run the Floyd–Warshall algorithm to get highest trust for each node pair (A,B).
     floyd_warshall(Vertex_List, Edge_Dict, Trust_Dict),
-    % Update the Pfc engine, disabling inference until all modifications have been made.
-    % pfcHalt, 
+    % Update the facts in the Pfc engine
     assert_modified_trust(Trust_Dict),
     assert_modified_judgements(Judgements),
-    % pfcRun,
+    % Extract new judgements
     % extract_new_judgements(Judgements),
     !.
 
@@ -74,15 +61,15 @@ assert_modified_judgements(Judgements) :-
             Judgement = (judgement(Judge, _Evidence, Claim)=Confidence),
             Old_Judgement = (judgement(Judge, _Old_Evidence, Claim)=_Old_Confidence),
             (
-                % If the judgement does not yet exist in Pfc, add it
-                (\+ pfc(holdsAt(Old_Judgement))), add(holdsAt(Judgement))
-                % Or, if the judgement already exists in Pfc and has justification of [user]
-                ;   justification(holdsAt(Old_Judgement), [user]),
-                    % Then remove the existing judgement from Pfc
-                    rem2(holdsAt(Old_Judgement)),
+                % If the judgement does not yet exist in Pfc, add it and note that it is atomic
+                (\+ pfc(holdsAt(Old_Judgement))), add(holdsAt(Judgement)), add(atm(Judgement))
+                % Or, if the judgement already exists in Pfc and is atomic
+                ;   pfc(atm(Old_Judgement)),
+                    % Then remove the existing judgement from Pfc and its atomicity
+                    rem2(holdsAt(Old_Judgement)), rem2(atm(Old_Judgement)),
                     % Add the new judgement (unless Confidence is 0)
-                    (Confidence = 0 ; add(holdsAt(Judgement)))
-                % Otherwise, this is a derived judgement, so we shouldn't manipulate it
+                    (Confidence = 0 ; add(holdsAt(Judgement)), add(atm(Judgement)))
+                % Otherwise, this is a derived judgement, so we shouldn't manipulate it directly
                 ; true
             )
         )), !.
@@ -105,6 +92,7 @@ create_dictionary(Input, [Key-Value | Remaining], Output) :-
     create_dictionary(Intermediate, Remaining, Output).
 create_dictionary(Output, [], Output).
 
+% Three layers of looping
 loop_one(V_Before, Vertex_List, Input_Dict, Output_Dict) :-
     V_Before = [V_One | V_After],
     loop_two(V_One, Vertex_List, Vertex_List, Input_Dict, Intermediate_Dict),
@@ -137,11 +125,4 @@ loop_three(_V_One, _V_Two, [], _Vertex_List, Output_Dict, Output_Dict).
 % Queries
 
 % update_pfc([a, b, c], _{a:_{b:0.8, c:0.2}, b:_{c:1.0}}, [judgement(c, [e], claim)=0.5]).
-% pfc(X).
-
-
-% :- add(holdsAt(j(a, claim)=1.0)).
-% :- add(holdsAt(trust(b, a)=0.5)).
-% :- add(holdsAt(trust(c, a)=0.75)).
-% :- add(holdsAt(trust(b, c)=1.0)).
-% :- add(holdsAt(trust(d, b)=1.0)).
+% forall((pfc(X), X =.. [holdsAt, J]),(write(J),nl)).

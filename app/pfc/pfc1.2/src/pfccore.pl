@@ -441,7 +441,6 @@ pfcRetractSupportRelations(Fact) :-
   (Type=trigger -> pfcRemSupport(P,(_,Fact))
                 ; pfcRemSupport(P,(Fact,_))),
   removeIfUnsupported(P),
-  %%%%%%%%%%%%%%%%%%%%% I believe it's not generating all choice points here
   fail.
 pfcRetractSupportRelations(_).
 
