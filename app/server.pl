@@ -68,7 +68,7 @@ construct_json_narrative([Current | Remaining]) :-
     % Collect the events and fluents, moving the narrative along in between
     findall(JsonEvent, (happens(Event, Timestamp), jsonify(Event, JsonEvent)), Events),
     tick,
-    findall(JsonFluent, (holdsAt(Fluent, Future), jsonify(Fluent, JsonFluent)), Fluents),
+    findall(JsonFluent, (fluent(Fluent, Future), jsonify(Fluent, JsonFluent)), Fluents),
     % Recurse through the narrative until the length is less than one
     !, (
         narrative(Narrative), length(Narrative, Length), Length >= 1,
