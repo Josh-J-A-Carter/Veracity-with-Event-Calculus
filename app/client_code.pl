@@ -1,19 +1,15 @@
 %%% Rules
 
-% Initial trust levels
-initially(trust(retailer, vineyard)=0.97).
-initially(trust(retailer, winery)=0.98).
-initially(trust(customer, retailer)=0.9).
-initially(trust(customer, winery)=0.95).
-
-initially(judgement(winery, [magic], [organic, non_toxic]==>healthy)=1.0).
-
-% Verification of a claim creates a judgement in the Veracity Logic
-initiates(verify(Entity, Evidence, Claim, Confidence), judgement(Entity, [Evidence], Claim)=Confidence, _T).
-
-
+set_trust(interaction(A, B, C), A, B, C).
+set_judgement(verify(A, B, C, D), A, B, C, D).
 
 %%% Narrative
+
+happens(interaction(retailer, vineyard, 0.97), 0).
+happens(interaction(retailer, winery, 0.98), 0).
+happens(interaction(customer, retailer, 0.9), 0).
+happens(interaction(customer, winery, 0.95), 0).
+
 
 happens(verify(vineyard, testing, non_toxic, 1.0), 1).
 

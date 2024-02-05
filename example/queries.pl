@@ -22,5 +22,6 @@ print_dec_state :-
 ?- print_narrative.
 
 
-% retractall(happens(_,_)), [app/cached_dec, example/production_process].
-% [example/queries].
+% retractall(happens(_,_)), ['cached_dec', '../example/production_process'].
+% retractall(happens(_,_)), ['cached_dec', '../example/simple_production']. 
+% ['../example/queries'].

@@ -140,5 +140,6 @@ initialiseDEC :-
     retractall(holdsAtCached(_,_)),
     retractall(releasedAtCached(_,_)),
     retractall(cached(_)),
+    reset_veracity,
     generate_narrative.
 

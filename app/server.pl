@@ -5,10 +5,10 @@
 :- use_module(library(http/http_client)).
 :- use_module(library(http/json)).
 
-% Make sure that compilation errors/warnings are reported from loaded files
-:- multifile user:message_hook/3.
-user:message_hook(load_file_errors(_File, Errors, Warnings), _Level, _Lines) :-
-    (Errors > 0 ; Warnings > 0), throw(error(syntax_error('no information'), Errors > 0)).
+% % Make sure that compilation errors/warnings are reported from loaded files
+% :- multifile user:message_hook/3.
+% user:message_hook(load_file_errors(_File, Errors, Warnings), _Level, _Lines) :-
+%     (Errors > 0 ; Warnings > 0), throw(error(syntax_error('no information'), Errors > 0)).
 
 server(Port) :- http_server(http_dispatch, [port(Port)]).
 :- server(8000).
