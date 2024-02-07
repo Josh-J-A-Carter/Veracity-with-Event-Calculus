@@ -33,3 +33,8 @@ happens(handle(retailer, bottle_1), 1200).
 % % Claims that the bottle was not changed in an inorganic way
 happens(verify(retailer, "audit", claim(bottle_1, no_change(1101), 1201), 1.0), 1201).
 
+
+happens(verify(customer, true, (claim(O, "organic", T1), claim(O, no_change(T1), T2), {T1 < T2} ==> claim(O, "organic", T2)), 0), 1301).
+
+
+happens(verify(customer2, true, (claim(O, "organic", T1), claim(O, no_change(T1), T2), {T1 < T2} ==> claim(O, "organic", T2)), 1.0), 1302).

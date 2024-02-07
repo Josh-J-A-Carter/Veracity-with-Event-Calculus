@@ -544,9 +544,14 @@ function jsonToPrologTerm(json, bindings = {}) {
 							.map(condition => jsonToPrologTerm(condition, bindings));
 		var conditions_text = conditions.join(', ');
 		if (conditions.length > 1) conditions_text = `(${conditions_text})`;
+
+		var consequent = json.args[1]
+							.filter(result => result.type != '{}')
+							.map(result => jsonToPrologTerm(result, bindings));
+		var consequent_text = consequent.join(', ');
+		if (consequent.length > 1) consequent_text = `(${consequent_text})`;
 	
-		var conclusion = jsonToPrologTerm(json.args[1], bindings);
-		return 	`${conditions_text} ⇒ ${conclusion}`;
+		return 	`${conditions_text} ⇒ ${consequent_text}`;
 	}
 	
 	// Complex terms (recursive case)

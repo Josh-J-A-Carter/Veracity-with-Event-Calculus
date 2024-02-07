@@ -66,30 +66,31 @@ update_judgements(T) :-
             (
                 % Process the claim, turning each claim into a judgement template, and placing constraints after judgements
                 % to ensure that variables are fully bound before instantiation.
-                transform_rule(Claim, Judgement, Template),
-                % Remove the old rule (if it exists), and replace it (unless confidence is 0)
-                rem2((Template)), (Confidence = 0 ; add((Template)))
+                transform_rule(Claim, Template),
+                % Add the rule to Pfc, unless confidence is 0
+                % Note that we don't remove the rule, since one of the conditions of implicative judgements
+                % is that the rule itself is held to be true. Thus, removing belief in the rule is enough,
+                % and it also prevents any issues associated with disjoint subsets of the trust graph retracting rules
+                (Confidence = 0 ; add((Template)))
             ))
         )), !.
 
 % Take an implicative claim and turn it into a judgement template - with constraints at the end to ensure variables are instantiated
 % This is required since Pfc won't backtrack over arbitrary Prolog code, so we can't create one generic rule
 % that handles implicative judgements and simply reruns Prolog code every time relevant judgements appear
-transform_rule(Antecedent ==> Consequent, Base_Evidence, Transformed_Antecedent ==> Transformed_Consequent) :-
+transform_rule(Antecedent ==> Consequent, Transformed_Antecedent ==> Transformed_Consequent) :-
     % Need to turn tuple into a list so that it can be rearranged
     % Constraints need to be at the end, otherwise variables won't be grounded
     tuple_to_list(Antecedent, Antecedent_List),
     partition(is_constraint, Antecedent_List, Constraints, Claims),
-    claims_to_judgements(Claims, Agent, Judgements_Template, Evidence, Confidence),
-    Total_Evidence = [Base_Evidence | Evidence],
-    % If 'Base_Evidence' is itself a judgement, include that in the calculation
-    (Base_Evidence = (judgement(_, _, _)=Base_Confidence) ; Base_Confidence = 1),
-    Total_Constraints = [{ Total_Confidence is Base_Confidence * Confidence } | Constraints],
+    % Including the implicative claim as it triggers the rule, so belief in it is a condition
+    claims_to_judgements([Antecedent ==> Consequent | Claims], Agent, Judgements_Template, Total_Evidence, Total_Confidence),
+    Total_Constraints = [{ Confidence is Total_Confidence } | Constraints],
     % Turn the judgements back into a tuple
     append(Judgements_Template, Total_Constraints, Combined_Antecedent),
     tuple_to_list(Transformed_Antecedent, Combined_Antecedent),
     % Transform consequent, using total evidence and total confidence
-    Transformed_Consequent = fluent(judgement(Agent, Total_Evidence, Consequent)=Total_Confidence), !.
+    Transformed_Consequent = fluent(judgement(Agent, Total_Evidence, Consequent)=Confidence), !.
 
 is_constraint(Term) :- Term =.. [{} | _].
 

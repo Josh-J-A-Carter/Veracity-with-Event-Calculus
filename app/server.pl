@@ -88,9 +88,11 @@ jsonify([Head | Tail], [JsonHead | JsonTail]) :-
 jsonify([], []) :- !.
 
 % Treat implications separately
-jsonify(Conditions ==> Consequence, JsonImplication) :- 
-    jsonify(Conditions, JsonConditions), jsonify(Consequence, JsonConsequence),
-    JsonImplication = _{type : implies, args : [JsonConditions, JsonConsequence]}, !.
+jsonify(Antecedent_Tuple ==> Consequent_Tuple, JsonImplication) :- 
+    tuple_to_list(Antecedent_Tuple, Antecedent),
+    tuple_to_list(Consequent_Tuple, Consequent),
+    jsonify(Antecedent, JsonAntecedent), jsonify(Consequent, JsonConsequent),
+    JsonImplication = _{type : implies, args : [JsonAntecedent, JsonConsequent]}, !.
 
 jsonify(In, Out) :-
     % Check for the =/2 functor, since it is used with multi-valued fluents
