@@ -1,25 +1,19 @@
 %%% Rules
 
+set_trust(interaction(A, B, C), A, B, C).
+set_judgement(verify(A, B, C, D), A, B, C, D).
+
 % Initial trust levels
-initially(trust(customer, winery)=1.0).
-initially(trust(customer2, customer)=0.9).
-initially(trust(customer2, winery)=0.95).
-initially(trust(customer, organic_transportation)=0.97).
-initially(trust(customer, retailer)=0.95).
-
-% If Entity verifies a Claim, it creates a judgement that some Evidence verifies the Claim
-% Evidence has to be atomic; it is not further analysable in the veracity logic (though it may still be a complex prolog structure)
-% To supply complex Evidence involving multiple judgements, use 'implies'
-initiates(verify(Entity, Evidence, Claim, Confidence), judgement(Entity, [Evidence], Claim)=Confidence, _T).
-
-terminates(disprove(Entity, Claim), judgement(Entity, _Evidence, Claim)=_Confidence, _T).
+happens(interaction(customer, winery, 1.0), 0).
+happens(interaction(customer2, customer, 0.9), 0).
+happens(interaction(customer2, winery, 0.95), 0).
+happens(interaction(customer, organic_transportation, 0.97), 0).
+happens(interaction(customer, retailer, 0.95), 0).
 
 % If (O is verified as organic at T1) and (O is verified as not having changed since T1),
 % then (O is verified as organic at T2) - provided T1 < T2
-initially(judgement(customer, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
-initially(judgement(customer2, [true], [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2))=1.0).
-
-initiates(change_trust(A, B, Trust), trust(A, B)=Trust, _T).
+happens(verify(customer, true, (claim(O, "organic", T1), claim(O, no_change(T1), T2), {T1 < T2} ==> claim(O, "organic", T2)), 1.0), 0).
+happens(verify(customer2, true, (claim(O, "organic", T1), claim(O, no_change(T1), T2), {T1 < T2} ==> claim(O, "organic", T2)), 1.0), 0).
 
 
 %%% Narrative
@@ -39,5 +33,3 @@ happens(handle(retailer, bottle_1), 1200).
 % % Claims that the bottle was not changed in an inorganic way
 happens(verify(retailer, "audit", claim(bottle_1, no_change(1101), 1201), 1.0), 1201).
 
-
-happens(disprove(customer, [claim(O, "organic", T1), claim(O, no_change(T1), T2), constraint(T1 < T2)] ==> claim(O, "organic", T2)), 1202).

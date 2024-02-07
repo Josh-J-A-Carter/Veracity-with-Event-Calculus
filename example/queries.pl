@@ -24,4 +24,5 @@ print_dec_state :-
 
 % retractall(happens(_,_)), ['cached_dec', '../example/production_process'].
 % retractall(happens(_,_)), ['cached_dec', '../example/simple_production']. 
+% retractall(happens(_,_)), ['cached_dec', '../example/veracity']. 
 % ['../example/queries'].

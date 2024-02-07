@@ -3,11 +3,11 @@
 %   Purpose: syntactic sugar for Pfc - operator definitions and term expansions.
 
 :- op(500,fx,'~').
-:- op(1050,xfx,('==>')).
+:- op(1150,xfx,('==>')).
 :- op(1050,xfx,'<==>').
 :- op(1050,xfx,('<==')).
 :- op(1100,fx,('==>')).
-:- op(1150,xfx,('::::')).
+:- op(1151,xfx,('::::')).
 
 :- multifile('term_expansion'/2).
 

@@ -1,10 +1,16 @@
 Expected output for queries:
-?- [cached_dec, veracity]
-?- initialiseDEC, [queries].
-
+?- retractall(happens(_,_)), ['cached_dec', '../example/veracity'].
+?- ['../example/queries'].
 Printing entire narrative:
 
 Events that occurred at time 01/01/1970, 13:00
+interaction(customer,winery,1.0)
+interaction(customer2,customer,0.9)
+interaction(customer2,winery,0.95)
+interaction(customer,organic_transportation,0.97)
+interaction(customer,retailer,0.95)
+verify(customer,true,(claim(_2432,"organic",_2436),claim(_2432,no_change(_2436),_2458),{_2436<_2458}==>claim(_2432,"organic",_2458)),1.0)
+verify(customer2,true,(claim(_2432,"organic",_2436),claim(_2432,no_change(_2436),_2458),{_2436<_2458}==>claim(_2432,"organic",_2458)),1.0)
 
 
 Fluents that hold just after 01/01/1970, 13:00
@@ -12,10 +18,9 @@ trust(customer,winery)=1.0
 trust(customer2,customer)=0.9
 trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
 trust(customer,retailer)=0.95
-judgement(customer,'[...]',([claim(_24672,"organic",_24676),claim(_24672,no_change(_24676),_24698),constraint(_24676<_24698)]==>claim(_24672,"organic",_24698)))=1.0
-judgement(customer2,'[...]',([claim(_24672,"organic",_24676),claim(_24672,no_change(_24676),_24698),constraint(_24676<_24698)]==>claim(_24672,"organic",_24698)))=1.0
+judgement(customer,'[...]',(claim(_17492,"organic",_17496),claim(_17492,no_change(_17496),_17518),{_17496<_17518}==>claim(_17492,"organic",_17518)))=1.0
+judgement(customer2,'[...]',(claim(_17512,"organic",_17516),claim(_17512,no_change(_17516),_17538),{_17516<_17538}==>claim(_17512,"organic",_17538)))=0.9
 
 
 Events that occurred at time 01/01/1970, 13:16
@@ -27,10 +32,9 @@ trust(customer,winery)=1.0
 trust(customer2,customer)=0.9
 trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
 trust(customer,retailer)=0.95
-judgement(customer,'[...]',([claim(_23812,"organic",_23816),claim(_23812,no_change(_23816),_23838),constraint(_23816<_23838)]==>claim(_23812,"organic",_23838)))=1.0
-judgement(customer2,'[...]',([claim(_23812,"organic",_23816),claim(_23812,no_change(_23816),_23838),constraint(_23816<_23838)]==>claim(_23812,"organic",_23838)))=1.0
+judgement(customer,'[...]',(claim(_3418,"organic",_3422),claim(_3418,no_change(_3422),_3444),{_3422<_3444}==>claim(_3418,"organic",_3444)))=1.0      
+judgement(customer2,'[...]',(claim(_3438,"organic",_3442),claim(_3438,no_change(_3442),_3464),{_3442<_3464}==>claim(_3438,"organic",_3464)))=0.9     
 
 
 Events that occurred at time 01/01/1970, 13:16
@@ -42,10 +46,9 @@ trust(customer,winery)=1.0
 trust(customer2,customer)=0.9
 trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
 trust(customer,retailer)=0.95
-judgement(customer,'[...]',([claim(_24662,"organic",_24666),claim(_24662,no_change(_24666),_24688),constraint(_24666<_24688)]==>claim(_24662,"organic",_24688)))=1.0
-judgement(customer2,'[...]',([claim(_24662,"organic",_24666),claim(_24662,no_change(_24666),_24688),constraint(_24666<_24688)]==>claim(_24662,"organic",_24688)))=1.0
+judgement(customer,'[...]',(claim(_3442,"organic",_3446),claim(_3442,no_change(_3446),_3468),{_3446<_3468}==>claim(_3442,"organic",_3468)))=1.0      
+judgement(customer2,'[...]',(claim(_3462,"organic",_3466),claim(_3462,no_change(_3466),_3488),{_3466<_3488}==>claim(_3462,"organic",_3488)))=0.9     
 judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
@@ -60,10 +63,9 @@ trust(customer,winery)=1.0
 trust(customer2,customer)=0.9
 trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
 trust(customer,retailer)=0.95
-judgement(customer,'[...]',([claim(_23764,"organic",_23768),claim(_23764,no_change(_23768),_23790),constraint(_23768<_23790)]==>claim(_23764,"organic",_23790)))=1.0
-judgement(customer2,'[...]',([claim(_23764,"organic",_23768),claim(_23764,no_change(_23768),_23790),constraint(_23768<_23790)]==>claim(_23764,"organic",_23790)))=1.0
+judgement(customer,'[...]',(claim(_3358,"organic",_3362),claim(_3358,no_change(_3362),_3384),{_3362<_3384}==>claim(_3358,"organic",_3384)))=1.0      
+judgement(customer2,'[...]',(claim(_3378,"organic",_3382),claim(_3378,no_change(_3382),_3404),{_3382<_3404}==>claim(_3378,"organic",_3404)))=0.9     
 judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
@@ -78,17 +80,16 @@ trust(customer,winery)=1.0
 trust(customer2,customer)=0.9
 trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
 trust(customer,retailer)=0.95
-judgement(customer,'[...]',([claim(_24606,"organic",_24610),claim(_24606,no_change(_24610),_24632),constraint(_24610<_24632)]==>claim(_24606,"organic",_24632)))=1.0
-judgement(customer2,'[...]',([claim(_24606,"organic",_24610),claim(_24606,no_change(_24610),_24632),constraint(_24610<_24632)]==>claim(_24606,"organic",_24632)))=1.0
+judgement(customer,'[...]',(claim(_3378,"organic",_3382),claim(_3378,no_change(_3382),_3404),{_3382<_3404}==>claim(_3378,"organic",_3404)))=1.0      
+judgement(customer2,'[...]',(claim(_3398,"organic",_3402),claim(_3398,no_change(_3402),_3424),{_3402<_3424}==>claim(_3398,"organic",_3424)))=0.9     
 judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
 judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0
 judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97
-judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
 judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
 judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.8293499999999999
 
 
@@ -101,17 +102,16 @@ trust(customer,winery)=1.0
 trust(customer2,customer)=0.9
 trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
 trust(customer,retailer)=0.95
-judgement(customer,'[...]',([claim(_23716,"organic",_23720),claim(_23716,no_change(_23720),_23742),constraint(_23720<_23742)]==>claim(_23716,"organic",_23742)))=1.0
-judgement(customer2,'[...]',([claim(_23716,"organic",_23720),claim(_23716,no_change(_23720),_23742),constraint(_23720<_23742)]==>claim(_23716,"organic",_23742)))=1.0
+judgement(customer,'[...]',(claim(_3298,"organic",_3302),claim(_3298,no_change(_3302),_3324),{_3302<_3324}==>claim(_3298,"organic",_3324)))=1.0      
+judgement(customer2,'[...]',(claim(_3318,"organic",_3322),claim(_3318,no_change(_3322),_3344),{_3322<_3344}==>claim(_3318,"organic",_3344)))=0.9     
 judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
 judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0
 judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97
-judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
 judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
 judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.8293499999999999
 
 
@@ -124,46 +124,20 @@ trust(customer,winery)=1.0
 trust(customer2,customer)=0.9
 trust(customer2,winery)=0.95
 trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
 trust(customer,retailer)=0.95
-judgement(customer,'[...]',([claim(_24558,"organic",_24562),claim(_24558,no_change(_24562),_24584),constraint(_24562<_24584)]==>claim(_24558,"organic",_24584)))=1.0
-judgement(customer2,'[...]',([claim(_24558,"organic",_24562),claim(_24558,no_change(_24562),_24584),constraint(_24562<_24584)]==>claim(_24558,"organic",_24584)))=1.0
+judgement(customer,'[...]',(claim(_3378,"organic",_3382),claim(_3378,no_change(_3382),_3404),{_3382<_3404}==>claim(_3378,"organic",_3404)))=1.0      
+judgement(customer2,'[...]',(claim(_3398,"organic",_3402),claim(_3398,no_change(_3402),_3424),{_3402<_3424}==>claim(_3398,"organic",_3424)))=0.9     
 judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
 judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
 judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0
 judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97
-judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
 judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97
-judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.8293499999999999
-judgement(retailer,'[...]',claim(bottle_1,no_change(1101),1201))=1.0
-judgement(customer,'[...]',claim(bottle_1,no_change(1101),1201))=0.95
-judgement(customer2,'[...]',claim(bottle_1,no_change(1101),1201))=0.855
-judgement(customer,'[...]',claim(bottle_1,"organic",1201))=0.9215
-judgement(customer2,'[...]',claim(bottle_1,"organic",1201))=0.7090942499999999
-
-
-Events that occurred at time 01/01/1970, 13:20
-disprove(customer,([claim(_22832,"organic",_22836),claim(_22832,no_change(_22836),_22858),constraint(_22836<_22858)]==>claim(_22832,"organic",_22858)))
-
-
-Fluents that hold just after 01/01/1970, 13:20
-trust(customer,winery)=1.0
-trust(customer2,customer)=0.9
-trust(customer2,winery)=0.95
-trust(customer,organic_transportation)=0.97
-trust(organic_transportation,random_transportation)=0.2
-trust(customer,retailer)=0.95
-judgement(customer2,'[...]',([claim(_24052,"organic",_24056),claim(_24052,no_change(_24056),_24078),constraint(_24056<_24078)]==>claim(_24052,"organic",_24078)))=1.0
-judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0
-judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0
-judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95
-judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0
-judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97
 judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873
 judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.8293499999999999
 judgement(retailer,'[...]',claim(bottle_1,no_change(1101),1201))=1.0
 judgement(customer,'[...]',claim(bottle_1,no_change(1101),1201))=0.95
+judgement(customer,'[...]',claim(bottle_1,"organic",1201))=0.9215
 judgement(customer2,'[...]',claim(bottle_1,no_change(1101),1201))=0.855
 judgement(customer2,'[...]',claim(bottle_1,"organic",1201))=0.7090942499999999
 

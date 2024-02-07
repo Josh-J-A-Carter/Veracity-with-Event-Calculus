@@ -18,13 +18,6 @@ reset_veracity :-
         % they won't derive any unique judgements through trust; all trust pairs have already been calculated.
         ==> { reconstruct_trust_path(B, A, [], Path), New_Evidence = [judgement(A, Evidence, Claim)=Confidence | Path], 
         New_Confidence is Confidence * Trust }, fluent(judgement(B, New_Evidence, Claim)=New_Confidence)
-    )),
-    % Rule - Implicative judgements derive consequent when the antecedent is true
-    add((
-        fluent(judgement(Agent, Evidence, Antecedent ==> Consequent)=Base_Confidence),
-        { Base_Evidence = [judgement(Agent, Evidence, Antecedent ==> Consequent)=Base_Confidence],
-        check_antecedent(Agent, [Antecedent], Base_Confidence, Base_Evidence, Total_Confidence, Total_Evidence) }
-        ==> fluent(judgement(Agent, Total_Evidence, Consequent)=Total_Confidence)
     )).
 
 reconstruct_trust_path(B, B, Reversed_Path, Path) :- reverse(Reversed_Path, Path), !.
@@ -33,14 +26,6 @@ reconstruct_trust_path(B, A, Acc, Path) :-
     pfc(trust_cache(Previous, A, _, Trust)),
     Temp = [trust(Previous, A)=Trust | Acc],
     reconstruct_trust_path(B, Previous, Temp, Path).
-
-check_antecedent(Agent, [Claim | Remaining], Acc_Confidence, Acc_Evidence, Confidence, Evidence) :-
-    Judgement = (judgement(Agent, _Evidence, Claim)=New_Confidence),
-    pfc(fluent(Judgement)),
-    Temp_Confidence is Acc_Confidence * New_Confidence,
-    Temp_Evidence = [Judgement | Acc_Evidence],
-    check_antecedent(Agent, Remaining, Temp_Confidence, Temp_Evidence, Confidence, Evidence).
-check_antecedent(_Agent, [], Confidence, Evidence, Confidence, Evidence).
 
 % Reset the Pfc engine and assert appropriate rules
 :- reset_veracity.
@@ -58,8 +43,8 @@ update_judgements(T) :-
     % Derived judgements should not be manipulated directly as they still have support
     forall(member(Judgement, Judgements),
         (
-            Judgement = (judgement(Judge, _Evidence, Claim)=Confidence),
-            Old_Judgement = (judgement(Judge, _Old_Evidence, Claim)=_Old_Confidence),
+            Judgement = (judgement(Agent, _Evidence, Claim)=Confidence),
+            Old_Judgement = (judgement(Agent, _Old_Evidence, Claim)=_Old_Confidence),
             (
                 % If the judgement does not yet exist in Pfc, add it and note that it is atomic
                 (\+ pfc(fluent(Old_Judgement))), add(fluent(Judgement)), add(atm(Judgement))
@@ -70,9 +55,53 @@ update_judgements(T) :-
                     % Add the new judgement (unless Confidence is 0)
                     (Confidence = 0 ; add(fluent(Judgement)), add(atm(Judgement)))
                 % Otherwise, this is a derived judgement, so we shouldn't manipulate it directly
-                ; true
-            )
+                ; fail
+            ),
+            % If this is not an implicative judgement, finish execution here
+            (\+ Claim =.. [==> | _]
+            ;
+            % Otherwise, we want to make sure that the actual forward chaining rule is dealt with (not just the fluent representation)
+            % Note: we can't simply make a general Pfc rule to deal with all possible implications,
+            % due to the limitations with backtracking over arbitrary Prolog code.
+            (
+                % Process the claim, turning each claim into a judgement template, and placing constraints after judgements
+                % to ensure that variables are fully bound before instantiation.
+                transform_rule(Claim, Judgement, Template),
+                % Remove the old rule (if it exists), and replace it (unless confidence is 0)
+                rem2((Template)), (Confidence = 0 ; add((Template)))
+            ))
         )), !.
+
+% Take an implicative claim and turn it into a judgement template - with constraints at the end to ensure variables are instantiated
+% This is required since Pfc won't backtrack over arbitrary Prolog code, so we can't create one generic rule
+% that handles implicative judgements and simply reruns Prolog code every time relevant judgements appear
+transform_rule(Antecedent ==> Consequent, Base_Evidence, Transformed_Antecedent ==> Transformed_Consequent) :-
+    % Need to turn tuple into a list so that it can be rearranged
+    % Constraints need to be at the end, otherwise variables won't be grounded
+    tuple_to_list(Antecedent, Antecedent_List),
+    partition(is_constraint, Antecedent_List, Constraints, Claims),
+    claims_to_judgements(Claims, Agent, Judgements_Template, Evidence, Confidence),
+    Total_Evidence = [Base_Evidence | Evidence],
+    % If 'Base_Evidence' is itself a judgement, include that in the calculation
+    (Base_Evidence = (judgement(_, _, _)=Base_Confidence) ; Base_Confidence = 1),
+    Total_Constraints = [{ Total_Confidence is Base_Confidence * Confidence } | Constraints],
+    % Turn the judgements back into a tuple
+    append(Judgements_Template, Total_Constraints, Combined_Antecedent),
+    tuple_to_list(Transformed_Antecedent, Combined_Antecedent),
+    % Transform consequent, using total evidence and total confidence
+    Transformed_Consequent = fluent(judgement(Agent, Total_Evidence, Consequent)=Total_Confidence), !.
+
+is_constraint(Term) :- Term =.. [{} | _].
+
+% List of claims -> list of judgement templates, accumulating them as evidence and their confidence
+claims_to_judgements([Claim | Remaining], Agent, [fluent(J) | Judgements], [J | Evidence], C * Confidence) :-
+    J = (judgement(Agent, _Evidence, Claim)=C),
+    claims_to_judgements(Remaining, Agent, Judgements, Evidence, Confidence).
+claims_to_judgements([], _, [], [], 1).
+
+tuple_to_list((A, B), [A | C]) :- tuple_to_list(B, C), !.
+tuple_to_list(A, [A]) :- !.
+
 
 update_trust(T) :-
     % Find changed trust fluents
@@ -130,6 +159,7 @@ create_dictionary(Input, [Key-Value | Remaining], Output) :-
 create_dictionary(Output, [], Output).
 
 % Three layers of looping
+% Note - Input_Trust_Dict and Input_Path_Dict are used as accumulators
 loop_one(V_Before, Vertex_List, Input_Trust_Dict, Input_Path_Dict, Trust_Dict, Path_Dict) :-
     V_Before = [V_One | V_After],
     loop_two(V_One, Vertex_List, Vertex_List, Input_Trust_Dict, Input_Path_Dict, Mid_Trust_Dict, Mid_Path_Dict),

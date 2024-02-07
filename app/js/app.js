@@ -533,9 +533,14 @@ function jsonToPrologTerm(json, bindings = {}) {
 		return json;
 	}
 
+	// if (json.type == '{}') {
+	// 	console.log(json.args[0]);
+	// 	return `{${json.args[0]}}`;
+	// }
+
 	if (json.type == 'implies') {
 		var conditions = json.args[0]
-							.filter(condition => condition.type != 'constraint')
+							.filter(condition => condition.type != '{}')
 							.map(condition => jsonToPrologTerm(condition, bindings));
 		var conditions_text = conditions.join(', ');
 		if (conditions.length > 1) conditions_text = `(${conditions_text})`;
