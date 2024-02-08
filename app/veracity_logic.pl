@@ -41,7 +41,7 @@ update_judgements(T) :-
     findall(judgement(A, [B], C)=D, (happens(E, T_Previous), set_judgement(E, A, B, C, D)), Judgements),
     % Update the *atomic* judgements which have been modified
     % Derived judgements should not be manipulated directly as they still have support
-    forall(member(Judgement, Judgements),
+    foreach(member(Judgement, Judgements),
         (
             Judgement = (judgement(Agent, _Evidence, Claim)=Confidence),
             Old_Judgement = (judgement(Agent, _Old_Evidence, Claim)=_Old_Confidence),

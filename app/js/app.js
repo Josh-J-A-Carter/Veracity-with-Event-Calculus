@@ -533,8 +533,19 @@ function jsonToPrologTerm(json, bindings = {}) {
 		return json;
 	}
 
+	if (json.type == ',') {
+		return json.args
+					.map(arg => jsonToPrologTerm(arg, bindings))
+					.join('∧');
+	}
+
+	if (json.type == ';') {
+		return json.args
+					.map(arg => jsonToPrologTerm(arg, bindings))
+					.join('∨');
+	}
+
 	// if (json.type == '{}') {
-	// 	console.log(json.args[0]);
 	// 	return `{${json.args[0]}}`;
 	// }
 
@@ -548,10 +559,10 @@ function jsonToPrologTerm(json, bindings = {}) {
 		var consequent = json.args[1]
 							.filter(result => result.type != '{}')
 							.map(result => jsonToPrologTerm(result, bindings));
-		var consequent_text = consequent.join(', ');
+		var consequent_text = consequent.join('∧');
 		if (consequent.length > 1) consequent_text = `(${consequent_text})`;
 	
-		return 	`${conditions_text} ⇒ ${consequent_text}`;
+		return 	`${conditions_text} → ${consequent_text}`;
 	}
 	
 	// Complex terms (recursive case)

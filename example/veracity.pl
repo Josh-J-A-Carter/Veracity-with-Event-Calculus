@@ -13,8 +13,6 @@ happens(interaction(customer, retailer, 0.95), 0).
 % If (O is verified as organic at T1) and (O is verified as not having changed since T1),
 % then (O is verified as organic at T2) - provided T1 < T2
 happens(verify(customer, true, (claim(O, "organic", T1), claim(O, no_change(T1), T2), {T1 < T2} ==> claim(O, "organic", T2)), 1.0), 0).
-happens(verify(customer2, true, (claim(O, "organic", T1), claim(O, no_change(T1), T2), {T1 < T2} ==> claim(O, "organic", T2)), 1.0), 0).
-
 
 %%% Narrative
 
