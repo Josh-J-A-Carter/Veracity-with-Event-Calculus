@@ -1,0 +1,60 @@
+?- retractall(happens(_,_)), ['logic/cached_dec', '../example/disjunction'].
+?- ['../example/queries'].
+
+Printing entire narrative:
+
+Events that occurred at time 01/01/1970, 13:00
+verify(customer,true,(a;b,(c;e);d==>f),0.95)
+
+
+Fluents that hold just after 01/01/1970, 13:00
+judgement(customer,'[...]',(a;b,(c;e);d==>f))=0.95   : true
+
+
+Events that occurred at time 01/01/1970, 13:00
+verify(customer,t1,a,0.9)
+
+
+Fluents that hold just after 01/01/1970, 13:00
+judgement(customer,'[...]',(a;b,(c;e);d==>f))=0.95   : true
+judgement(customer,'[...]',a)=0.9   : true
+judgement(customer,'[...]',f)=0.9   : true
+
+
+Events that occurred at time 01/01/1970, 13:00
+verify(customer,t2,d,0.8)
+
+
+Fluents that hold just after 01/01/1970, 13:00
+judgement(customer,'[...]',(a;b,(c;e);d==>f))=0.95   : true
+judgement(customer,'[...]',a)=0.9   : true
+judgement(customer,'[...]',f)=0.8   : true
+judgement(customer,'[...]',d)=0.8   : true
+
+
+Events that occurred at time 01/01/1970, 13:00
+verify(customer,t3,b,0.7)
+verify(customer,t4,c,0.8)
+
+
+Fluents that hold just after 01/01/1970, 13:00
+judgement(customer,'[...]',(a;b,(c;e);d==>f))=0.95   : true
+judgement(customer,'[...]',a)=0.9   : true
+judgement(customer,'[...]',f)=0.7   : true
+judgement(customer,'[...]',d)=0.8   : true
+judgement(customer,'[...]',b)=0.7   : true
+judgement(customer,'[...]',c)=0.8   : true
+
+
+Events that occurred at time 01/01/1970, 13:00
+verify(customer,t5,e,0.5)
+
+
+Fluents that hold just after 01/01/1970, 13:00
+judgement(customer,'[...]',(a;b,(c;e);d==>f))=0.95   : true
+judgement(customer,'[...]',a)=0.9   : true
+judgement(customer,'[...]',f)=0.5   : true
+judgement(customer,'[...]',d)=0.8   : true
+judgement(customer,'[...]',b)=0.7   : true
+judgement(customer,'[...]',c)=0.8   : true
+judgement(customer,'[...]',e)=0.5   : true

@@ -1,0 +1,141 @@
+?- retractall(happens(_,_)), ['logic/cached_dec', '../example/supply'].
+?- ['../example/queries'].
+
+Printing entire narrative:
+
+Events that occurred at time 01/01/1970, 13:00
+interaction(customer,winery,1.0)
+interaction(customer2,customer,0.9)
+interaction(customer2,winery,0.95)
+interaction(customer,organic_transportation,0.97)
+interaction(customer,retailer,0.95)
+verify(customer,true,(claim(_4336,"organic",_4340),claim(_4336,no_change(_4340),_4362),{_4340<_4362}==>claim(_4336,"organic",_4362)),1.0)
+
+
+Fluents that hold just after 01/01/1970, 13:00
+trust(customer,winery)=1.0
+trust(customer2,customer)=0.9
+trust(customer2,winery)=0.95
+trust(customer,organic_transportation)=0.97
+trust(customer,retailer)=0.95
+judgement(customer,'[...]',(claim(_23742,"organic",_23746),claim(_23742,no_change(_23746),_23768),{_23746<_23768}==>claim(_23742,"organic",_23768)))=1.0   : true
+judgement(customer2,'[...]',(claim(_23742,"organic",_23746),claim(_23742,no_change(_23746),_23768),{_23746<_23768}==>claim(_23742,"organic",_23768)))=0.9   : true
+
+
+Events that occurred at time 01/01/1970, 13:16
+handle(winery,bottle_1)
+
+
+Fluents that hold just after 01/01/1970, 13:16
+trust(customer,winery)=1.0
+trust(customer2,customer)=0.9
+trust(customer2,winery)=0.95
+trust(customer,organic_transportation)=0.97
+trust(customer,retailer)=0.95
+judgement(customer,'[...]',(claim(_5320,"organic",_5324),claim(_5320,no_change(_5324),_5346),{_5324<_5346}==>claim(_5320,"organic",_5346)))=1.0   : true
+judgement(customer2,'[...]',(claim(_5320,"organic",_5324),claim(_5320,no_change(_5324),_5346),{_5324<_5346}==>claim(_5320,"organic",_5346)))=0.9   : true
+
+
+Events that occurred at time 01/01/1970, 13:16
+verify(winery,"audit1",claim(bottle_1,"organic",1001),1.0)
+
+
+Fluents that hold just after 01/01/1970, 13:16
+trust(customer,winery)=1.0
+trust(customer2,customer)=0.9
+trust(customer2,winery)=0.95
+trust(customer,organic_transportation)=0.97
+trust(customer,retailer)=0.95
+judgement(customer,'[...]',(claim(_5290,"organic",_5294),claim(_5290,no_change(_5294),_5316),{_5294<_5316}==>claim(_5290,"organic",_5316)))=1.0   : true
+judgement(customer2,'[...]',(claim(_5290,"organic",_5294),claim(_5290,no_change(_5294),_5316),{_5294<_5316}==>claim(_5290,"organic",_5316)))=0.9   : true
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95   : true
+
+
+Events that occurred at time 01/01/1970, 13:18
+handle(organic_transportation,bottle_1)
+
+
+Fluents that hold just after 01/01/1970, 13:18
+trust(customer,winery)=1.0
+trust(customer2,customer)=0.9
+trust(customer2,winery)=0.95
+trust(customer,organic_transportation)=0.97
+trust(customer,retailer)=0.95
+judgement(customer,'[...]',(claim(_5260,"organic",_5264),claim(_5260,no_change(_5264),_5286),{_5264<_5286}==>claim(_5260,"organic",_5286)))=1.0   : true
+judgement(customer2,'[...]',(claim(_5260,"organic",_5264),claim(_5260,no_change(_5264),_5286),{_5264<_5286}==>claim(_5260,"organic",_5286)))=0.9   : true
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95   : true
+
+
+Events that occurred at time 01/01/1970, 13:18
+verify(organic_transportation,"audit2",claim(bottle_1,no_change(1001),1101),1.0)
+
+
+Fluents that hold just after 01/01/1970, 13:18
+trust(customer,winery)=1.0
+trust(customer2,customer)=0.9
+trust(customer2,winery)=0.95
+trust(customer,organic_transportation)=0.97
+trust(customer,retailer)=0.95
+judgement(customer,'[...]',(claim(_5230,"organic",_5234),claim(_5230,no_change(_5234),_5256),{_5234<_5256}==>claim(_5230,"organic",_5256)))=1.0   : true
+judgement(customer2,'[...]',(claim(_5230,"organic",_5234),claim(_5230,no_change(_5234),_5256),{_5234<_5256}==>claim(_5230,"organic",_5256)))=0.9   : true
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95   : true
+judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97   : true
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.873   : true
+
+
+Events that occurred at time 01/01/1970, 13:20
+handle(retailer,bottle_1)
+
+
+Fluents that hold just after 01/01/1970, 13:20
+trust(customer,winery)=1.0
+trust(customer2,customer)=0.9
+trust(customer2,winery)=0.95
+trust(customer,organic_transportation)=0.97
+trust(customer,retailer)=0.95
+judgement(customer,'[...]',(claim(_5200,"organic",_5204),claim(_5200,no_change(_5204),_5226),{_5204<_5226}==>claim(_5200,"organic",_5226)))=1.0   : true
+judgement(customer2,'[...]',(claim(_5200,"organic",_5204),claim(_5200,no_change(_5204),_5226),{_5204<_5226}==>claim(_5200,"organic",_5226)))=0.9   : true
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95   : true
+judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97   : true
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.873   : true
+
+
+Events that occurred at time 01/01/1970, 13:20
+verify(retailer,"audit3",claim(bottle_1,no_change(1101),1201),1.0)
+
+
+Fluents that hold just after 01/01/1970, 13:20
+trust(customer,winery)=1.0
+trust(customer2,customer)=0.9
+trust(customer2,winery)=0.95
+trust(customer,organic_transportation)=0.97
+trust(customer,retailer)=0.95
+judgement(customer,'[...]',(claim(_5230,"organic",_5234),claim(_5230,no_change(_5234),_5256),{_5234<_5256}==>claim(_5230,"organic",_5256)))=1.0   : true
+judgement(customer2,'[...]',(claim(_5230,"organic",_5234),claim(_5230,no_change(_5234),_5256),{_5234<_5256}==>claim(_5230,"organic",_5256)))=0.9   : true
+judgement(winery,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1001))=1.0   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1001))=0.95   : true
+judgement(organic_transportation,'[...]',claim(bottle_1,no_change(1001),1101))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,no_change(1001),1101))=0.97   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1101))=0.97   : true
+judgement(customer2,'[...]',claim(bottle_1,no_change(1001),1101))=0.873   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1101))=0.873   : true
+judgement(retailer,'[...]',claim(bottle_1,no_change(1101),1201))=1.0   : true
+judgement(customer,'[...]',claim(bottle_1,no_change(1101),1201))=0.95   : true
+judgement(customer,'[...]',claim(bottle_1,"organic",1201))=0.95   : true
+judgement(customer2,'[...]',claim(bottle_1,no_change(1101),1201))=0.855   : true
+judgement(customer2,'[...]',claim(bottle_1,"organic",1201))=0.855   : true

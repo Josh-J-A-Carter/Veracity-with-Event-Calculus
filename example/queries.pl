@@ -16,13 +16,17 @@ print_dec_state :-
     nl,nl,
     ansi_format([fg(green)], "Fluents that hold just after ~w~n", [Date]),
     forall((fluent(Fluent, Future), Fluent \= (judgement(_, _, _)=_)), (print(Fluent), nl)),
-    forall(fluent(judgement(J, _E, C)=K, Future), (print(judgement(J,'[...]', C)=K), nl)),
+    forall(fluent(judgement(A, proof(Success, _, _), C)=K, Future), (
+            print(judgement(A,'[...]', C)=K),
+            % Include whether or not the proof was successfully verified by Coq
+            write('   : '), print(Success), nl
+        )),
     nl, !.
 
 ?- print_narrative.
 
 
-% retractall(happens(_,_)), ['cached_dec', '../example/production_process'].
-% retractall(happens(_,_)), ['cached_dec', '../example/simple_production']. 
-% retractall(happens(_,_)), ['cached_dec', '../example/veracity']. 
+% retractall(happens(_,_)), ['logic/cached_dec', '../example/supply'].
+% retractall(happens(_,_)), ['logic/cached_dec', '../example/supply_simple'].
+% retractall(happens(_,_)), ['logic/cached_dec', '../example/disjunction'].
 % ['../example/queries'].
