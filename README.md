@@ -1,3 +1,5 @@
+## Description
+A summer research project, which involved combining the Event Calculus with the Veracity Logic, implemented in Prolog.
 
 ## Required Software
 - SWI-Prolog
@@ -47,6 +49,7 @@
 16. The graph display is updated as needed.
 
 ## Acknowledgements
+- Thanks to David Eyers and Stephen Cranefield for supervising this project!
 - The Veracity Logic proposed by Steve Reeves in his 2023 paper
 - Mechanised Veracity Logic, a Coq implementation of the logic by Daniel Britten
 - [Prolog forwarding chaining (Pfc)](https://github.com/finin/pfc), written at the Unisys Paoli Research Center
