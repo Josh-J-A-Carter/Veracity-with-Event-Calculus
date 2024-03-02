@@ -1,0 +1,47 @@
+?- retractall(happens(_,_)), ['logic/cached_dec', '../example/supply_simple'].
+?- ['../example/queries'].
+
+Printing entire narrative:
+
+Events that occurred at time 01/01/1970, 13:00
+interaction(customer,winery,1.0)
+interaction(customer,transportation,0.95)
+verify(customer,true,(organic,non_toxic==>healthy),1.0)
+verify(customer,true,(healthy==>good),1.0)
+
+
+Fluents that hold just after 01/01/1970, 13:00
+trust(customer,winery)=1.0
+trust(customer,transportation)=0.95
+judgement(customer,'[...]',(organic,non_toxic==>healthy))=1.0   : true
+judgement(customer,'[...]',(healthy==>good))=1.0   : true
+
+
+Events that occurred at time 01/01/1970, 13:16
+verify(winery,"audit1",organic,1.0)
+
+
+Fluents that hold just after 01/01/1970, 13:16
+trust(customer,winery)=1.0
+trust(customer,transportation)=0.95
+judgement(customer,'[...]',(organic,non_toxic==>healthy))=1.0   : true
+judgement(customer,'[...]',(healthy==>good))=1.0   : true
+judgement(winery,'[...]',organic)=1.0   : true
+judgement(customer,'[...]',organic)=1.0   : true
+
+
+Events that occurred at time 01/01/1970, 13:18
+verify(transportation,"audit2",non_toxic,1.0)
+
+
+Fluents that hold just after 01/01/1970, 13:18
+trust(customer,winery)=1.0
+trust(customer,transportation)=0.95
+judgement(customer,'[...]',(organic,non_toxic==>healthy))=1.0   : true
+judgement(customer,'[...]',(healthy==>good))=1.0   : true
+judgement(winery,'[...]',organic)=1.0   : true
+judgement(customer,'[...]',organic)=1.0   : true
+judgement(transportation,'[...]',non_toxic)=1.0   : true
+judgement(customer,'[...]',non_toxic)=0.95   : true
+judgement(customer,'[...]',healthy)=0.95   : true
+judgement(customer,'[...]',good)=0.95   : true

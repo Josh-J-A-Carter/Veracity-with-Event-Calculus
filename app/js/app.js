@@ -29,7 +29,8 @@ function updateDisplay() {
 		.reduce((acc, judgement) => {
 			// Construct the object using Prolog's complex term style
 			var claim = jsonToPrologTerm(judgement.args[2]);
-			var obj = { fluent_data : claim, display : `Judgements for ${claim}`, current : true };
+			var success = judgement.args[1].args[0];
+			var obj = { fluent_data : claim, display : `Judgements for ${claim}`, current : true, success : success };
 
 			// Is the object already there?
 			const already_present = acc.find(f => f.fluent_data == claim);
@@ -66,7 +67,28 @@ function updateDisplay() {
 		var is_current = option.current == true;
 		var classes = `${is_active ? "active" : ""} ${is_current ? "" : "not-current"}`;
 
-		return `${text}<button class="${classes}" onclick="changeFluentMode(this, \'${option.fluent_data}\')">${option.display}</button>`;
+
+		// Show visual indicators for successful or failed proofs
+		// If this isn't a judgement, then there shouldn't be such an indication
+		if (option.success == undefined) {
+			return `${text}<button class="${classes}" onclick="changeFluentMode(this, \'${option.fluent_data}\')">
+						${option.display}
+					</button>`;
+		}
+		else if (option.success) {
+			// Icon from Roundicons - Flaticon
+			return `${text}<button class="${classes}" onclick="changeFluentMode(this, \'${option.fluent_data}\')">
+						${option.display}
+						<img class="verification" src='img/success.png' />
+					</button>`;
+		}
+		else {
+			// Icon from kliwir art - Flaticon
+			return `${text}<button class="${classes}" onclick="changeFluentMode(this, \'${option.fluent_data}\')">
+						${option.display}
+						<img class="verification" src='img/failure.png' />
+					</button>`;
+		}
 	}, "");
 
 	// Displaying the options
@@ -248,34 +270,50 @@ function updateGraph() {
 
 		// Store which node is now selected
 		selected_node = event.target.id();
-
-		// Update the visual indicator for the current node
-		const current_node_label = document.getElementById('current-node');
-		current_node_label.innerHTML = `Node '${selected_node}' is selected`;
 		
-		// Update the display area text
-		const selected_node_text = document.getElementById('selected-node-text');
-		var entry = display_information.find(node => node.id == selected_node);
-		if (entry != undefined) selected_node_text.innerHTML = entry.text;
-		else selected_node_text.innerHTML = "";
+		updateDisplayText(display_information);
 	});
 
 	cy.on("mouseover", "node", event => event.target.addClass("hover"));
 	cy.on("mouseout", "node.hover", event => event.target.removeClass("hover"));
 
+	updateDisplayText(display_information);
+}
+
+// Ensure that the display text area shows current information about selected node
+function updateDisplayText(display_information) {
+
+	if (selected_node == undefined) return;
 
 	// Update the display area label and text
 	const selected_node_text = document.getElementById('selected-node-text');
 
-	if (selected_node == undefined) {
-		selected_node_text.innerHTML = "";
-		return;
-	}
-
 	// Update the display area text
 	var entry = display_information.find(node => node.id == selected_node);
 	if (entry != undefined) selected_node_text.innerHTML = entry.text;
-	else selected_node_text.innerHTML = "";
+	else selected_node_text.innerHTML = "";	
+
+	// Is this a proof?
+	var verification_indicator = document.getElementById('verification');
+	// No, remove the indicator
+	if (entry.success == undefined) {
+		if (verification_indicator) verification_indicator.remove();
+	// Yes, change the indicator to show success or failure
+	} else {
+		if (verification_indicator == undefined) {
+			verification_indicator = document.createElement('img');
+			verification_indicator.setAttribute('id', 'verification');
+			verification_indicator.classList.add('verification');
+			document.getElementById('selected-node-label')
+					.appendChild(verification_indicator);
+		}
+		// Icon from Roundicons - Flaticon
+		if (entry.success) {
+			verification_indicator.src = 'img/success.png';
+		}
+		// Icon from kliwir art - Flaticon
+		else verification_indicator.src = 'img/failure.png';
+	}
 }
 
 function calculateJudgementGraph() {
@@ -292,11 +330,15 @@ function calculateJudgementGraph() {
 		.filter(fluent => fluent.type == "judgement" && fluent.args.length == 3 && jsonToPrologTerm(fluent.args[2]) == graph_mode)
 		.forEach(fluent => {
 			const name = fluent.args[0];
+			const proof = fluent.args[1];
+			const success = proof.args[0];
 			const display_text = buildProofTree(fluent);
+			// Only show proof if successful
 			graph.add({ data : { id : name, highlight : true }});
 			display_information.push({
 				id : name,
-				text : display_text
+				text : display_text,
+				success : success
 			});
 			
 			// Go through the trust/2 fluents to find all the nodes which trust this one
@@ -413,67 +455,144 @@ function calculateTrustGraph() {
 }
 
 function buildProofTree(json_judgement) {
-	const { pre_text, conclusion } = proofTreeRecurse(json_judgement);
+	const p = json_judgement.args[1];
 
-	if (pre_text == undefined) return conclusion;
+	const success = p.args[0];
+	const error_location = p.args[1];
+	const tactics = p.args[2];
+	
+	// Store context about the previous tactic
+	// The stack is useful when breaking down tactics with two arguments, e.g. 'impl_elim' or 'and_intro'
+	// Each argument has to be dealt with separately, but there may be more tactics before getting to the other one,
+	// and so we'll lose the context of the original 'impl_elim' tactic by then
+	init_actor = json_judgement.args[0];
+	init_claim = json_judgement.args[2];
+	init_confidence = json_judgement.value;
+	initial_context = { actor : init_actor, claim : init_claim, confidence : init_confidence };
+	context_stack = [initial_context];
 
-	return pre_text;
-}
+	// Building proof as a list then calling join() on it
+	proof = [];
+	// Storing the styles for each claim so that they can be visually differentiated
+	claim_styles = {};
 
-function proofTreeRecurse(json_judgement, claim_styles = {}) {
-	// Base case: atom
-	// We don't need to prove atomic pieces of evidence any further.
+	for (let [index, tactic] of tactics.entries()) {
+		context = context_stack.pop();
+		// This could just be a signal to add a gap element here
+		if (context == 'gap') {
+			proof.push(`<div class="skip-line"></div>`);
+			context = context_stack.pop();
+		}
+		({ actor : prev_actor, claim : prev_claim, confidence : prev_confidence } = context);
+		
+		if (tactic.type == 'impl_elim') {
+			[actor, left_evidence, right_evidence, left_confidence, right_confidence, left, right] = tactic.args;
+			total_evidence = left_evidence.concat(right_evidence);
 
-	if (json_judgement.type == 'trust') return { 
-		pre_text: undefined, 
-		conclusion : jsonToPrologTerm(json_judgement),
-		atomic : false,
-		atomic_evidence : []
+			left_judgement = judgementFormat(left_evidence, actor, left_confidence, left, undefined, claim_styles);
+			right_judgement = judgementFormat(right_evidence, actor, right_confidence, right, undefined, claim_styles);
+			prev_judgement = judgementFormat(total_evidence, actor, prev_confidence, prev_claim, undefined, claim_styles);
+
+			proof.push(`${left_judgement}, ${right_judgement} ⊢ ${prev_judgement}
+						<div class="skip-line"></div>`);
+
+			context_stack.push({ actor : actor, claim : right, confidence : right_confidence });
+			// We want the two arguments to be separated visually...
+			context_stack.push('gap');
+			context_stack.push({ actor : actor, claim : left, confidence : left_confidence });
+		}
+		else if (tactic.type == 'and_intro') {
+			[actor, left_evidence, right_evidence, left_confidence, right_confidence, left, right] = tactic.args;
+			total_evidence = left_evidence.concat(right_evidence);
+
+			left_judgement = judgementFormat(left_evidence, actor, left_confidence, left, undefined, claim_styles);
+			right_judgement = judgementFormat(right_evidence, actor, right_confidence, right, undefined, claim_styles);
+			prev_judgement = judgementFormat(total_evidence, actor, prev_confidence, prev_claim, undefined, claim_styles);
+
+			proof.push(`${left_judgement}, ${right_judgement} ⊢ ${prev_judgement}
+						<div class="skip-line"></div>`);
+
+			context_stack.push({ actor : actor, claim : right, confidence : right_confidence });
+			// We want the two arguments to be separated visually...
+			context_stack.push('gap');
+			context_stack.push({ actor : actor, claim : left, confidence : left_confidence });
+		}
+		else if (tactic.type == 'or_intro1') {
+			[actor, evidence, confidence, claim] = tactic.args;
+
+			result = judgementFormat(evidence, actor, prev_confidence, prev_claim, undefined, claim_styles);
+			disjunction = judgementFormat(evidence, actor, confidence, claim, undefined, claim_styles);
+
+			proof.push(`${disjunction} ⊢ ${result}`);
+
+			context_stack.push({ actor : prev_actor, claim : pl_claim, confidence : confidence });
+		}
+		else if (tactic.type == 'or_intro2') {
+			[actor, evidence, confidence, claim] = tactic.args;
+
+			result = judgementFormat(evidence, actor, prev_confidence, prev_claim, undefined, claim_styles);
+			disjunction = judgementFormat(evidence, actor, confidence, claim, undefined, claim_styles);
+
+			proof.push(`${disjunction} ⊢ ${result}`);
+
+			context_stack.push({ actor : actor, claim : claim, confidence : confidence });
+		}
+		else if (tactic.type == 'trust') {
+			[trustor, trustee, evidence, claim, weight] = tactic.args;
+			
+			pl_trustor = jsonToPrologTerm(trustor);
+			pl_trustee = jsonToPrologTerm(trustee);
+
+			confidence = prev_confidence * weight;
+
+			prev_judgement = judgementFormat(evidence, trustee, prev_confidence, prev_claim, undefined, claim_styles);
+			new_judgement = judgementFormat(evidence, trustor, confidence, prev_claim, undefined, claim_styles);
+
+			proof.push(`${prev_judgement},
+					${pl_trustor} 
+					T<div class="scripts">
+						<span class="super"></span>
+						<span class="sub">${weight.toFixed(2)}</span>
+					</div> ${pl_trustee}
+					⊢ ${new_judgement}`);
+
+			context_stack.push({ actor : pl_trustee, claim : claim, confidence : confidence });
+		}
+		else if (tactic.type == 'assume') {
+			[evidence, actor, confidence] = tactic.args;
+			
+			pl_judgement = judgementFormat(evidence, prev_actor, confidence, prev_claim, undefined, claim_styles);
+
+			proof.push(`Assume ${pl_judgement}`);
+			context_stack.push({ actor : prev_actor, claim : prev_claim, confidence : confidence });
+		}
+		else if (tactic == 'leaf') {
+			claim_element = getStyledClaim(prev_claim, claim_styles)
+			proof.push(`${claim_element} is a veracity claim`);
+		}
+		else throw new TypeError("Unknown tactic " + tactic);
+
+
+		// If this is where a logical error occurred during verification of the judgement, mark it as such
+		if (success == false && index == error_location) {
+			proof[proof.length - 1] = `<b>Logic Error</b><br>
+										<div class="verification-failure">${proof[proof.length - 1]}</div>`;
+		}
 	}
 
-	if (json_judgement.args == undefined) return { 
-		pre_text : undefined, 
-		conclusion : json_judgement,
-		atomic : true,
-		atomic_evidence : [json_judgement]
-	};
+	return proof.join('<br>');
+}
 
-	var agent = jsonToPrologTerm(json_judgement.args[0]);
-	var evidence_objects = json_judgement.args[1].map(e => proofTreeRecurse(e, claim_styles));
-	var claim = jsonToPrologTerm(json_judgement.args[2]);
-	var confidence = (Math.round(json_judgement.value * 100) / 100).toFixed(2);
+// Style the claim (uniquely) for better readability
+function getStyledClaim(claim, claim_styles) {
+	pl_claim = jsonToPrologTerm(claim);
 
-	// Including the proofs for the evidence that this current judgement depends on
-	// Only relevant when the pieces of evidence are not atomic
-	var previous_proofs = evidence_objects
-					.filter(e => e.pre_text != undefined)
-					.map(e => e.pre_text)
-					.reduce((text, e) => `<br><div class="skip-line"></div>${e}${text}`, '');
-	
-	// Collect the atomic witnesses which combine to this current judgement, and display them as text
-	// Make sure that there are no duplicate atomic witnesses
-	var witnesses = evidence_objects
-						.map(e => e.atomic_evidence)
-						.reduce((acc, list) => acc.concat(list), [])
-						// .filter(e => e != 'true' && e != 'false');
-
-	var no_duplicates = new Set(witnesses);
-	var witness_text = [...no_duplicates].join(',');
-	if (witnesses.length > 1) witness_text = `(${witness_text})`;
-	
-	// Using the conclusions of each bit of evidence which this judgement depends on,
-	// we then format this together in veracity logic style
-	var evidence = evidence_objects
-					.map(e => e.conclusion)
-					.join(', ');
-	
-	// Style the claim (uniquely) for better readability
-	if (claim_styles[claim] == undefined) {
+	if (claim_styles[pl_claim] == undefined) {
 		var taken_styles = Object.keys(claim_styles).length;
 		var colour_options = Object.keys(possible_claim_colours).length;
 		var decoration_options = Object.keys(possible_claim_decoration).length;
 
-		if (taken_styles >= colour_options * decoration_options) claim_styles[claim] = '';
+		if (taken_styles >= colour_options * decoration_options) claim_styles[pl_claim] = '';
 		
 		else {
 			// Colour choices wrap around
@@ -481,40 +600,49 @@ function proofTreeRecurse(json_judgement, claim_styles = {}) {
 			// Determine which text decoration is required, based on the number of taken styles
 			// We know this won't go past decoration_options because we've already checked that in the if statement
 			var next_decoration_index = Math.trunc(taken_styles / colour_options);
-			claim_styles[claim] = 
+			claim_styles[pl_claim] = 
 				`color : ${possible_claim_colours[next_colour_index]} ;
 				text-decoration : ${possible_claim_decoration[next_decoration_index]}`;
 		}
 	}
 
-	var claim_element = `<span style="${claim_styles[claim]}">${claim}</span>`;
-	
-	// Glue it all together with logic symbols, and return it
-	var scripts = `<div class="scripts"><span class="super">${agent}</span><span class="sub">${confidence}</span></div>`;
+	return `<span style="${claim_styles[pl_claim]}">${pl_claim}</span>`;
+}
 
-	var atomic_evidence = evidence_objects.find(e => e.atomic == true);
-	if (atomic_evidence) var conclusion = `${witness_text}${scripts} ∈ ${claim_element}`;
+function judgementFormat(evidence, actor, confidence, claim, tag, claim_styles) {
 
+	pl_actor = jsonToPrologTerm(actor);
+
+	// Style the claim for readability
+	var claim_element = getStyledClaim(claim, claim_styles);
+
+	// Parse the evidence into a Prolog term
+	has_brackets = false;
+	if (Array.isArray(evidence)) {
+		pl_list = evidence.map(e => jsonToPrologTerm(e));
+		pl_evidence = pl_list.join(', ');
+		if (pl_list.length > 1) {
+			pl_evidence = `(${pl_evidence})`;
+			has_brackets = true;
+		}
+	} else pl_evidence = jsonToPrologTerm(evidence)
+
+	scripts = `<div class="scripts">
+		<span class="super">${pl_actor}</span>
+		<span class="sub">${confidence.toFixed(2)}</span>
+	</div>`;
+
+	if (tag == undefined) return `${pl_evidence}${scripts} ∈ ${claim_element}`
+	// Needed for disjunctions, e.g. i(a) ∈ A \/ B
 	else {
-		var pre_text = `${evidence} ⊢ ${witness_text}${scripts} ∈ ${claim_element}${previous_proofs}`;
-		var conclusion = `${witness_text}${scripts} ∈ ${claim_element}`;
+		// Don't want two sets of brackets
+		if (has_brackets) return `${tag}${pl_evidence}${scripts} ∈ ${claim_element}`
+		return `${tag}(${pl_evidence})${scripts} ∈ ${claim_element}`
 	}
-
-	return { 
-		pre_text : pre_text,
-		conclusion : conclusion,
-		atomic : false,
-		atomic_evidence : witnesses,
-		claim_colours : claim_styles
-	};
 }
 
 // The bindings parameter holds the Prolog variable bindings across the entire (complex) term
 function jsonToPrologTerm(json, bindings = {}) {
-	// List of json terms (base case)
-	// Printing all of the 'evidence' for a judgement makes it impossible to read!
-	// Instead, we note that it has been cut down - the proof tree can be found elsewhere
-	if (json instanceof Array) return "(...)";
 
 	// Atoms (base case)
 	if (json.args == undefined) {
@@ -532,40 +660,44 @@ function jsonToPrologTerm(json, bindings = {}) {
 
 		return json;
 	}
-
-	if (json.type == ',') {
-		return json.args
-					.map(arg => jsonToPrologTerm(arg, bindings))
-					.join('∧');
-	}
-
-	if (json.type == ';') {
-		return json.args
-					.map(arg => jsonToPrologTerm(arg, bindings))
-					.join('∨');
-	}
-
-	// if (json.type == '{}') {
-	// 	return `{${json.args[0]}}`;
-	// }
-
-	if (json.type == 'implies') {
-		var conditions = json.args[0]
-							.filter(condition => condition.type != '{}')
-							.map(condition => jsonToPrologTerm(condition, bindings));
-		var conditions_text = conditions.join(', ');
-		if (conditions.length > 1) conditions_text = `(${conditions_text})`;
-
-		var consequent = json.args[1]
-							.filter(result => result.type != '{}')
-							.map(result => jsonToPrologTerm(result, bindings));
-		var consequent_text = consequent.join('∧');
-		if (consequent.length > 1) consequent_text = `(${consequent_text})`;
 	
-		return 	`${conditions_text} → ${consequent_text}`;
-	}
+	if (json.type == 'proof') return "(...)";
+
+	// Constraints are better not displayed, due to the infix operators
+	if (json.type == '{}') return '{}';
 	
 	// Complex terms (recursive case)
+	if (json.type == 'and') {
+		var left = jsonToPrologTerm(json.args[0], bindings);
+		var right = jsonToPrologTerm(json.args[1], bindings);
+
+		if (left != '{}' && right != '{}') return `(${left} ∧ ${right})`;
+		else if (left != '{}') return left;
+		else if (right != '{}') return right;
+		else return '{}'
+	}
+
+	if (json.type == 'or') {
+		var left = jsonToPrologTerm(json.args[0], bindings);
+		var right = jsonToPrologTerm(json.args[1], bindings);
+
+		if (left != '{}' && right != '{}') return `(${left} ∨ ${right})`;
+		else if (left != '{}') return left;
+		else if (right != '{}') return right;
+		else return '{}'
+	}
+
+	if (json.type == 'implies') {
+		var left = jsonToPrologTerm(json.args[0], bindings);
+		var right = jsonToPrologTerm(json.args[1], bindings);
+
+		if (left != '{}' && right != '{}') return `(${left} → ${right})`;
+		else if (left != '{}') return left;
+		else if (right != '{}') return right;
+		else return '{}'
+	}
+	
+	// Some other recursive structure
 	jsonified_arguments = json.args.map(arg => jsonToPrologTerm(arg, bindings));
 	functor = json.type;
 	
@@ -654,6 +786,7 @@ function submit(event) {
         })
         .then(res => res.json())
         .then(data => {
+			
 			if (data.success == false) throw new Error(data.error_type);
 
             timeline = data.timeline;
@@ -665,7 +798,7 @@ function submit(event) {
 }
 
 function handleError(error) {
-	var message = "Server unresponsive - there may be an infinite loop";
+	var message = "Server unresponsive - execution may be blocked";
 
 	if (error.message == 'syntax_error') message = "Syntax error(s) reported";
 	if (error.message == 'warning') message = "Warning(s) reported";

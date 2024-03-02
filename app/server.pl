@@ -1,14 +1,14 @@
-:- [cached_dec].
+:- ['logic/cached_dec'].
 
 :- use_module(library(http/thread_httpd)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_client)).
 :- use_module(library(http/json)).
 
-% % Make sure that compilation errors/warnings are reported from loaded files
-% :- multifile user:message_hook/3.
-% user:message_hook(load_file_errors(_File, Errors, Warnings), _Level, _Lines) :-
-%     (Errors > 0 ; Warnings > 0), throw(error(syntax_error('no information'), Errors > 0)).
+% Make sure that compilation errors/warnings are reported from loaded files
+:- multifile user:message_hook/3.
+user:message_hook(load_file_errors('client_code.pl', Errors, Warnings), _Level, _Lines) :-
+    (Errors > 0 ; Warnings > 0), throw(error(syntax_error('No information.'), Errors > 0)).
 
 server(Port) :- http_server(http_dispatch, [port(Port)]).
 :- server(8000).
@@ -19,6 +19,8 @@ server(Port) :- http_server(http_dispatch, [port(Port)]).
 :- http_handler(root('js/cytoscape-klay.js'), http_reply_file('js/cytoscape-klay.js', []), []).
 :- http_handler(root('js/klay.js'), http_reply_file('js/klay.js', []), []).
 :- http_handler(root('css/style.css'), http_reply_file('css/style.css', []), []).
+:- http_handler(root('img/success.png'), http_reply_file('img/success.png', []), []).
+:- http_handler(root('img/failure.png'), http_reply_file('img/failure.png', []), []).
 :- http_handler(root('update_dec'), update_dec, []).
 
 update_dec(Request) :-
@@ -35,7 +37,7 @@ update_dec(Request) :-
             construct_json_narrative(Timeline),
             OutJSON = (_{success : true, timeline : Timeline}),
             format('Content-type: application/json~n~n', []),
-            json_write(current_output, OutJSON, [true(true)])
+            json_write(current_output, OutJSON, [true(true), false(false)])
         ),
         error(_, IsError),
         (
@@ -88,11 +90,32 @@ jsonify([Head | Tail], [JsonHead | JsonTail]) :-
 jsonify([], []) :- !.
 
 % Treat implications separately
-jsonify(Antecedent_Tuple ==> Consequent_Tuple, JsonImplication) :- 
-    tuple_to_list(Antecedent_Tuple, Antecedent),
-    tuple_to_list(Consequent_Tuple, Consequent),
+jsonify(Antecedent ==> Consequent, JsonImplication) :- 
     jsonify(Antecedent, JsonAntecedent), jsonify(Consequent, JsonConsequent),
     JsonImplication = _{type : implies, args : [JsonAntecedent, JsonConsequent]}, !.
+
+% , and ;
+jsonify((A, B), Out) :-
+    jsonify(A, A_Json),
+    jsonify(B, B_Json),
+    Out = _{type : and, args : [A_Json, B_Json]}, !.
+jsonify((A ; B), Out) :-
+    jsonify(A, A_Json),
+    jsonify(B, B_Json),
+    Out = _{type : or, args : [A_Json, B_Json]}, !.
+
+% and_intro and impl_elim need to use -/2 to delimit their two claims, otherwise we can't tell where the tuples start/end
+jsonify(In, Out) :-
+    In =.. [and_intro | UnprocessedArgs]
+        -> UnprocessedArgs = [A1, B1, C1, D1, E1, (F1) - G1],
+        jsonify(A1, A2), jsonify(B1, B2), jsonify(C1, C2), jsonify(D1, D2),
+        jsonify(E1, E2), jsonify((F1), F2), jsonify((G1), G2),
+        Out = _{ type : and_intro, args : [A2, B2, C2, D2, E2, F2, G2] }, !
+    ; In =.. [impl_elim | UnprocessedArgs]
+        -> UnprocessedArgs = [A1, B1, C1, D1, E1, (F1) - G1],
+        jsonify(A1, A2), jsonify(B1, B2), jsonify(C1, C2), jsonify(D1, D2),
+        jsonify(E1, E2), jsonify((F1), F2), jsonify((G1), G2),
+        Out = _{ type : impl_elim, args : [A2, B2, C2, D2, E2, F2, G2] }, !.
 
 jsonify(In, Out) :-
     % Check for the =/2 functor, since it is used with multi-valued fluents
