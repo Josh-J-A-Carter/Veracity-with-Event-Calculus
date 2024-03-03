@@ -14,11 +14,18 @@ A summer research project, which involved combining the Event Calculus with the 
 - To start the server, run `swipl` from the `app` folder, and execute `[server].`
 - Visit the front end at http://localhost:8000/
 - Type the rules and narrative in the left text area.
-    - Events are introduced to the narrative by `happens/2`
-    - Standard `initially/1`, `initiates/3`, `terminates/3`, `releases/3` Event Calculus predicates are available for manipulating non-veracity fluents
-    - For veracity fluents:
+    - All events are introduced to the narrative by `happens/2`
+    - For non-veracity fluents, standard Event Calculus predicates `initially/1`, `initiates/3`, `terminates/3`, `releases/3` are to be used
+    - For veracity fluents, there are two domain specific predicates:
         - set_judgement(Event, Actor, Evidence, Claim, Confidence)
         - set_trust(Event, Trustor, Trustee, Trust_Level)
+    - Claim syntax (used in `set_judgement/5`) supports the following conventions:
+        - `==>/2` denotes an implicative claim, i.e. `a ==> b` means that forward chaining will derive `b` if `a` is true.
+        - `{}/1` describes constraints for the antecedent of an implicative claim; for example, `a(A), b(B), {A > B} ==> b(A)`
+            The veracity logic doesn't see these constraints - they are used for restricting forward chaining to prevent the proliferation of irrelevant judgements. Note also that the constraints need to be placed carefully to ensure that variables are ground when called; `a(A), {A > B}, b(B) ==> b(A)` would throw an error.
+        - `,/2` is used for conjunction, e.g. given `a, b ==> c`, `c` is derived when both `a` and `b` are true.
+        - `;/2` is used for disjunction, e.g. given `a ; b ==> c`, `c` is derived when either `a` or `b` are true.
+        - As shown in the constraints explanation, claims can be parameterised. For example, `(c(Obj, Qual, T1), c(Obj, no_change(T1), T2), {T1 < T2} ==> c(Obj, Qual, T2)` is the claim that if Obj has quality Qual at T1, and if at T2 Obj has not changed since T1, then Obj still has quality Qual at T2. <br> Then we can use this as a template; if throughout the narrative `a1` judges `c(cup, new, 1)` and `c(cup, no_change(1), 2)` to have veracity, `a1` will also believe `c(cup, new, 2)`.
     - **Note:** See the `example` folder for example input code
 - When finished writing the code, click `Generate Narrative`. It may take a few seconds for the response to arrive, as Coq is reset between sessions.
 - If an error is returned:
@@ -29,7 +36,7 @@ A summer research project, which involved combining the Event Calculus with the 
 - `Graph display options` allow you to choose which veracity fluents are displayed in the graph display. Judgements are also marked as having passed or failed formal verification.
 - After selecting a node in the graph display (located in the bottom right corner), information relating to that node is shown in the `Information for the selected node` area. If a certain type of judgement is selected from the `Graph display options`, then its proof is shown here.
 
-## Software Architecture Diagram
+## Software Architecture
 ![Depiction of software architecture](architecture.png)
 1. The client sends a request to the server to execute some code.
 2. The request is received by the server, and the accompanying code is sent to the Event Calculus in order to generate the narrative. Then, the server loops over each timestamp, telling cached_dec.pl to run `tick/0`.
@@ -47,6 +54,11 @@ A summer research project, which involved combining the Event Calculus with the 
 14. The entire narrative is constructed, and translated into JSON before being sent as a response to the client.
 15. The response is received and processed by JavaScript to update the DOM.
 16. The graph display is updated as needed.
+
+## Known Issues
+There are a couple of small issues that I am aware of, and intend on addressing when I have time:
+- Sending too many requests in a short space of time blocks the server. Fixing this should (hopefully) just involve moving execution of requests into separate threads for each request.
+- When displaying proofs in the web app, disjunctions' evidence is not tagged.
 
 ## Acknowledgements
 - Thanks to David Eyers and Stephen Cranefield for supervising this project!
