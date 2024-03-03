@@ -58,6 +58,7 @@ A summer research project, which involved combining the Event Calculus with the 
 ## Known Issues
 There are a couple of small issues that I am aware of, and intend on addressing when I have time:
 - Sending too many requests in a short space of time blocks the server. Fixing this should (hopefully) just involve moving execution of requests into separate threads for each request.
+- It would be nice to have some sort of indicator to show that the client is still waiting for a response.
 - When displaying proofs in the web app, disjunctions' evidence is not tagged.
 
 ## Acknowledgements
