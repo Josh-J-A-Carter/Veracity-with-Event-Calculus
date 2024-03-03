@@ -265,13 +265,6 @@ html, body, #container {
     width: 100%;
 }
 
-#graph-wrapper #current-node {
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    font-size: 14px;
-}
-
 #graph-wrapper #graph {
     height: 100%;
     width: 100%;

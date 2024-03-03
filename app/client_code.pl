@@ -1,16 +1,21 @@
+%%% Rules
+
+set_trust(interaction(A, B, C), A, B, C).
 set_judgement(verify(A, B, C, D), A, B, C, D).
 
+% If organic and non toxic, then also healthy
+happens(verify(customer, true, (c(Object, organic), c(Object, non_toxic) ==> c(Object, healthy)), 1.0), 0).
 
-% Create the implicative claim
-happens(verify(customer, true, (a ; (b, (c ; e)) ; d ==> f), 0.95), 0).
 
-% Satisfy a
-happens(verify(customer, t1, a, 0.9), 1).
+%%% Narrative
 
-% Satisfy d
-happens(verify(customer, t2, d, 0.8), 2).
+% Initial trust levels
+happens(interaction(customer, winery, 0.9), 0).
+happens(interaction(customer, transportation, 0.95), 0).
 
-% Satisfy (b, (c ; e))
-happens(verify(customer, t3, b, 0.7), 3).
-happens(verify(customer, t4, c, 0.8), 3).
-happens(verify(customer, t5, e, 0.5), 4).
+% Winery claims that the bottle of wine is organic
+happens(verify(winery, audit1, c(wine, organic), 1.0), 1).
+
+% % Claims that the bottle was not changed in an inorganic way
+happens(verify(transportation, audit2, c(wine, non_toxic), 1.0), 2).
+

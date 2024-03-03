@@ -543,10 +543,12 @@ function buildProofTree(json_judgement) {
 			pl_trustor = jsonToPrologTerm(trustor);
 			pl_trustee = jsonToPrologTerm(trustee);
 
-			confidence = prev_confidence * weight;
+			// Undo the effect of applying T(weight), i.e. Trustor_Conf = Trustee_Conf * weight
+			// so confidence = Trustee_Conf = Trustor_Conf / weight = prev_confidence / weight
+			confidence = prev_confidence / weight;
 
-			prev_judgement = judgementFormat(evidence, trustee, prev_confidence, prev_claim, undefined, claim_styles);
-			new_judgement = judgementFormat(evidence, trustor, confidence, prev_claim, undefined, claim_styles);
+			prev_judgement = judgementFormat(evidence, trustee, confidence, prev_claim, undefined, claim_styles);
+			resulting_judgement = judgementFormat(evidence, trustor, prev_confidence, prev_claim, undefined, claim_styles);
 
 			proof.push(`${prev_judgement},
 					${pl_trustor} 
@@ -554,7 +556,7 @@ function buildProofTree(json_judgement) {
 						<span class="super"></span>
 						<span class="sub">${weight.toFixed(2)}</span>
 					</div> ${pl_trustee}
-					⊢ ${new_judgement}`);
+					⊢ ${resulting_judgement}`);
 
 			context_stack.push({ actor : pl_trustee, claim : claim, confidence : confidence });
 		}
