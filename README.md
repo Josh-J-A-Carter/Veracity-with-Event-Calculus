@@ -63,8 +63,8 @@ There are a couple of small issues that I am aware of, and intend on addressing 
 
 ## Acknowledgements
 - Thanks to David Eyers and Stephen Cranefield for supervising this project!
-- The Veracity Logic proposed by Steve Reeves in his 2023 paper
-- Mechanised Veracity Logic, a Coq implementation of the logic by Daniel Britten
+- The logic for veracity, proposed by Steve Reeves in his [2023 paper](https://arxiv.org/abs/2302.06164)
+- [Veracity Logic Mechanised](https://github.com/Coda-Coda/Veracity-Logic-Mechanised), a Coq implementation of the logic written by Daniel Britten
 - [Prolog forwarding chaining (Pfc)](https://github.com/finin/pfc), written at the Unisys Paoli Research Center
 - [Cytoscape.js](https://js.cytoscape.org/) - a library for graph theory analysis and visualisation
 - [Cytoscape-klay.js](https://github.com/cytoscape/cytoscape.js-klay) - implements the Klay layout algorithm for Cytoscape.js
